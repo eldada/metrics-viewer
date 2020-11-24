@@ -1,40 +1,38 @@
-# hello-frog
+# metrics-viewer
 
 ## About this plugin
-This plugin is a template and a functioning example for a basic JFrog CLI plugin. 
-This README shows the expected structure of your plugin's README.
+This JFrog CLI plugin is for viewing JFrog products metrics in real time in a terminal. 
 
 ## Installation with JFrog CLI
 Installing the latest version:
 
-`$ jfrog plugin install hello-frog`
+`$ jfrog plugin install metrics-viewer`
 
 Installing a specific version:
 
-`$ jfrog plugin install hello-frog@version`
+`$ jfrog plugin install metrics-viewer@version`
 
 Uninstalling a plugin
 
-`$ jfrog plugin uninstall hello-frog`
+`$ jfrog plugin uninstall metrics-viewer`
 
 ## Usage
 ### Commands
-* hello
-    - Arguments:
-        - addressee - The name of the person you would like to greet.
-    - Flags:
-        - shout: Makes output uppercase **[Default: false]**
-        - repeat: Greets multiple times **[Default: 1]**
+* `metrics-viewer [options]`
+    - Options:
+    ```
+        -f | --file     <log-file> : log file with the open metrics format
+        -e | --endpoint <url>      : the url endpoint to on for open metrics output
+        -i | --interval <seconds>  : scraping interval (default: 5)
+        -t | --time     <seconds>  : time window to show
+    ```
     - Example:
     ```
-  $ jfrog hello-frog hello world --shout --repeat=2
-  
-  NEW GREETING: HELLO WORLD!
-  NEW GREETING: HELLO WORLD!
-  ```
+    $ jfrog metrics-viewer --file /var/opt/jfrog/artifactory/log/artifactory-metrics.log
+    ```
 
 ### Environment variables
-* HELLO_FROG_GREET_PREFIX - Adds a prefix to every greet **[Default: New greeting: ]**
+* DUMMY - place holder
 
 ## Additional info
 None.

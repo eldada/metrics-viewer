@@ -11,9 +11,9 @@ import (
 
 func GetHelloCommand() components.Command {
 	return components.Command{
-		Name:        "hello",
-		Description: "Says Hello.",
-		Aliases:     []string{"hi"},
+		Name:        "metrics-viewer",
+		Description: "Easily graph Open Metrics data in terminal",
+		Aliases:     []string{"mview"},
 		Arguments:   getHelloArguments(),
 		Flags:       getHelloFlags(),
 		EnvVars:     getHelloEnvVar(),

@@ -12,8 +12,8 @@ func main() {
 
 func getApp() components.App {
 	app := components.App{}
-	app.Name = "hello-frog"
-	app.Description = "Easily greet anyone."
+	app.Name = "metrics-viewer"
+	app.Description = "Easily graph Open Metrics data in terminal."
 	app.Version = "v0.1.0"
 	app.Commands = getCommands()
 	return app
