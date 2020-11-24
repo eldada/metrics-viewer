@@ -31,6 +31,25 @@ Uninstalling a plugin
     $ jfrog metrics-viewer --file /var/opt/jfrog/artifactory/log/artifactory-metrics.log
     ```
 
+### Artifactory Metrics
+You can run a local Docker container of Artifactory to test or demo this plugin.
+ 
+* Start Artifactory in Docker and enable the metrics
+```shell
+docker run --rm -d --name artifactory \
+    -p 8082:8082 \
+    -e JF_ARTIFACTORY_METRICS_ENABLED=true \
+    -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintry.io/jfrog/artifactory-oss
+```
+* Once Artifactory is up, you can see the metrics log file or [api endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
+```shell
+# The log file create by Artifactory
+tail -f $(pwd)/artifactory
+
+# Get the metrics from Artifactory api
+curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
+```
+
 ### Environment variables
 * DUMMY - place holder
 
