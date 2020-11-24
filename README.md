@@ -27,8 +27,8 @@ Uninstalling a plugin
         -t | --time     <seconds>  : time window to show
     ```
     - Example:
-    ```
-    $ jfrog metrics-viewer --file /var/opt/jfrog/artifactory/log/artifactory-metrics.log
+    ```shell
+    jfrog metrics-viewer --file /var/opt/jfrog/artifactory/log/artifactory-metrics.log
     ```
 
 ### Artifactory Metrics
