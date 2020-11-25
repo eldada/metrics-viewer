@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/eldada/metrics-viewer/commands"
 	"github.com/jfrog/jfrog-cli-core/plugins"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
-	"github.com/eldada/metrics-viewer/commands"
 )
 
 func main() {
@@ -13,7 +13,7 @@ func main() {
 func getApp() components.App {
 	app := components.App{}
 	app.Name = "metrics-viewer"
-	app.Description = "Easily graph Open Metrics data in terminal."
+	app.Description = "Easily present Open Metrics data in terminal."
 	app.Version = "v0.1.0"
 	app.Commands = getCommands()
 	return app
@@ -21,5 +21,5 @@ func getApp() components.App {
 
 func getCommands() []components.Command {
 	return []components.Command{
-		commands.GetHelloCommand()}
+		commands.GetGraphCommand()}
 }
