@@ -22,14 +22,19 @@ jfrog plugin uninstall metrics-viewer
 
 ## Usage
 ### Commands
-* `metrics-viewer [options]`
+* `metrics-viewer <commnd> [options]`
+    - Commands:
+    ```
+    show      : Show the metrics and their values
+    graph     : Open the metrics terminal graph viewer 
+    ```
     - Options:
     ```
-    -f | --file     <log-file> : log file with the open metrics format
-    -e | --endpoint <url>      : the url endpoint to on for open metrics output
-    -i | --interval <seconds>  : scraping interval (default: 5)
-    -t | --time     <seconds>  : time window to show
-    -m | --metric   <metrics>  : comma delimited list of metrics to show
+    -f | --file     <log-file> : Log file with the open metrics format
+    -u | --url      <url>      : The url endpoint to get metrics
+    -i | --interval <seconds>  : Scraping interval (default: 5)
+    -t | --time     <seconds>  : Time window to show
+    -m | --metric   <metrics>  : Comma delimited list of metrics to show
     ```
     - Example:
     ```shell
