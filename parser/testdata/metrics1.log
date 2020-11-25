@@ -1,0 +1,48 @@
+# HELP jfrt_runtime_heap_freememory_bytes Free Memory
+# UPDATED jfrt_runtime_heap_freememory_bytes 1606343802322
+# TYPE jfrt_runtime_heap_freememory_bytes gauge
+jfrt_runtime_heap_freememory_bytes 2.319814e+08 1606343802324
+# HELP jfrt_runtime_heap_maxmemory_bytes Max Memory
+# UPDATED jfrt_runtime_heap_maxmemory_bytes 1606343802322
+# TYPE jfrt_runtime_heap_maxmemory_bytes gauge
+jfrt_runtime_heap_maxmemory_bytes 2.147484e+09 1606343802324
+# HELP jfrt_runtime_heap_totalmemory_bytes Total Memory
+# UPDATED jfrt_runtime_heap_totalmemory_bytes 1606343802322
+# TYPE jfrt_runtime_heap_totalmemory_bytes gauge
+jfrt_runtime_heap_totalmemory_bytes 5.421138e+08 1606343802324
+# HELP jfrt_runtime_heap_processors_total Available Processors
+# UPDATED jfrt_runtime_heap_processors_total 1606343802322
+# TYPE jfrt_runtime_heap_processors_total counter
+jfrt_runtime_heap_processors_total 6 1606343802324
+# HELP jfrt_db_connections_active_total Total Active Connections
+# UPDATED jfrt_db_connections_active_total 1606343767190
+# TYPE jfrt_db_connections_active_total gauge
+jfrt_db_connections_active_total 2 1606343802324
+# HELP jfrt_db_connections_idle_total Total Idle Connections
+# UPDATED jfrt_db_connections_idle_total 1606343767190
+# TYPE jfrt_db_connections_idle_total gauge
+jfrt_db_connections_idle_total 0 1606343802324
+# HELP jfrt_db_connections_max_active_total Total Max Active Connections
+# UPDATED jfrt_db_connections_max_active_total 1606343767190
+# TYPE jfrt_db_connections_max_active_total gauge
+jfrt_db_connections_max_active_total 100 1606343802324
+# HELP jfrt_db_connections_min_idle_total Total Min Idle Connections
+# UPDATED jfrt_db_connections_min_idle_total 1606343767190
+# TYPE jfrt_db_connections_min_idle_total gauge
+jfrt_db_connections_min_idle_total 1 1606343802324
+# HELP sys_cpu_totaltime_seconds Total cpu time from the threads in seconds
+# UPDATED sys_cpu_totaltime_seconds 1606343802320
+# TYPE sys_cpu_totaltime_seconds gauge
+sys_cpu_totaltime_seconds 41.967 1606343802324
+# HELP jfrt_storage_used_bytes Used Storage
+# UPDATED jfrt_storage_used_bytes 1606343802322
+# TYPE jfrt_storage_used_bytes gauge
+jfrt_storage_used_bytes 0.000000e+00 1606343802324
+# HELP app_disk_total_bytes Used bytes for app home directory disk device
+# UPDATED app_disk_total_bytes 1606343802319
+# TYPE app_disk_total_bytes gauge
+app_disk_total_bytes 6.272248e+10 1606343802324
+# HELP app_disk_free_bytes Free bytes for app home directory disk device
+# UPDATED app_disk_free_bytes 1606343802319
+# TYPE app_disk_free_bytes gauge
+app_disk_free_bytes 5.685859e+10 1606343802324

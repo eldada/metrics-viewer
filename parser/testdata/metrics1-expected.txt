@@ -1,0 +1,24 @@
+app_disk_free_bytes:Free bytes for app home directory disk device
+  2020-11-25T22:36:42.324 56858590000.000
+app_disk_total_bytes:Used bytes for app home directory disk device
+  2020-11-25T22:36:42.324 62722480000.000
+jfrt_db_connections_active_total:Total Active Connections
+  2020-11-25T22:36:42.324 2.000
+jfrt_db_connections_idle_total:Total Idle Connections
+  2020-11-25T22:36:42.324 0.000
+jfrt_db_connections_max_active_total:Total Max Active Connections
+  2020-11-25T22:36:42.324 100.000
+jfrt_db_connections_min_idle_total:Total Min Idle Connections
+  2020-11-25T22:36:42.324 1.000
+jfrt_runtime_heap_freememory_bytes:Free Memory
+  2020-11-25T22:36:42.324 231981400.000
+jfrt_runtime_heap_maxmemory_bytes:Max Memory
+  2020-11-25T22:36:42.324 2147484000.000
+jfrt_runtime_heap_processors_total:Available Processors
+  2020-11-25T22:36:42.324 6.000
+jfrt_runtime_heap_totalmemory_bytes:Total Memory
+  2020-11-25T22:36:42.324 542113800.000
+jfrt_storage_used_bytes:Used Storage
+  2020-11-25T22:36:42.324 0.000
+sys_cpu_totaltime_seconds:Total cpu time from the threads in seconds
+  2020-11-25T22:36:42.324 41.967
