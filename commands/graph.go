@@ -77,14 +77,17 @@ func (c graphConfiguration) MetricKeys() []string {
 	return c.metrics
 }
 
+func (c graphConfiguration) String() string {
+	return fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
+		c.file, c.url, c.interval, c.timeWindow, c.metrics)
+}
+
 func graphCmd(c *components.Context) error {
 	conf, err := parseGraphCmdConfig(c)
 	if err != nil {
 		return err
 	}
-	//TODO Change to debug
-	log.Info(fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
-		conf.file, conf.url, conf.interval, conf.timeWindow, conf.metrics))
+	log.Debug("command config:", conf)
 
 	prov, err := provider.New(conf)
 	if err != nil {

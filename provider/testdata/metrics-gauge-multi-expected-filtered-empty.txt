@@ -1,0 +1,12 @@
+app_disk_free_bytes:
+app_disk_total_bytes:
+jfrt_db_connections_active_total:
+jfrt_db_connections_idle_total:
+jfrt_db_connections_max_active_total:
+jfrt_db_connections_min_idle_total:
+jfrt_runtime_heap_freememory_bytes:
+jfrt_runtime_heap_maxmemory_bytes:
+jfrt_runtime_heap_processors_total:
+jfrt_runtime_heap_totalmemory_bytes:
+jfrt_storage_used_bytes:
+sys_cpu_totaltime_seconds:
