@@ -19,6 +19,9 @@ type index struct {
 	grid        *tview.Grid
 	app         *tview.Application
 	mainContent *tview.TextView
+	drawing     bool
+	provider    provider.Provider
+	header      *tview.TextView
 }
 
 func NewIndex() *index {
@@ -26,22 +29,28 @@ func NewIndex() *index {
 	return &index{}
 }
 
+const defaultHeader = "JFrog metrics"
+
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
+	i.provider = prov
 	i.app = tview.NewApplication()
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
 
+	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
 	i.grid = tview.NewGrid().
 		SetRows(3, 0).
 		SetColumns(30, 0).
 		SetBorders(true).
-		AddItem(tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("JFrog metrics"), 0, 0, 1, 3, 0, 0, false)
+		AddItem(i.header, 0, 0, 1, 3, 0, 0, false)
 
 	i.generateAndReplaceMenuOnGrid()
-	go i.updateMenuOnGrid(ctx, interval)
 
 	i.grid.AddItem(i.mainContent, 1, 1, 1, 2, 0, 100, false)
 
-	if err := i.app.SetRoot(i.grid, true).SetFocus(i.currentMenu).Run(); err != nil {
+	i.app = i.app.SetRoot(i.grid, true).SetFocus(i.currentMenu)
+	go i.updateMenuOnGrid(ctx, interval)
+	i.drawing = true
+	if err := i.app.Run(); err != nil {
 		panic(err)
 	}
 }
@@ -62,17 +71,29 @@ func (i *index) updateMenuOnGrid(ctx context.Context, interval time.Duration) {
 
 func (i *index) generateAndReplaceMenuOnGrid() {
 	newMenu := i.generateMenu()
-	if i.currentMenu == nil {
+	if i.currentMenu != nil {
 		i.grid.RemoveItem(i.currentMenu)
 	}
 
 	i.currentMenu = newMenu
 	i.grid.AddItem(i.currentMenu, 1, 0, 1, 1, 0, 100, false)
+	if i.drawing {
+		i.app.Draw()
+		i.app.SetFocus(i.currentMenu)
+	}
 }
 
 func (i *index) generateMenu() *tview.List {
 	menu := tview.NewList()
-	for index, m := range i.getMetrics() {
+	metrics, err := i.provider.Get()
+	if err != nil {
+		i.header.SetText(fmt.Sprintf("%s\n[red]%s[-]", defaultHeader, err.Error()))
+		return menu
+	} else {
+		i.header.SetText(defaultHeader)
+	}
+
+	for index, m := range metrics {
 		i.addItemToMenu(menu, index, m)
 	}
 
@@ -88,29 +109,6 @@ func (i *index) addItemToMenu(menu *tview.List, index int, m models.Metrics) *tv
 		res := NewGraph().SprintOnce(width, height, m)
 		i.mainContent.SetText(replaceColors(res))
 	})
-}
-
-func (*index) getMetrics() []models.Metrics {
-	n := rand.Intn(10)
-
-	metrics := make([]models.Metrics, 0, n)
-	for i := 0; i < n; i++ {
-		metrics = append(metrics, models.Metrics{
-			Metrics: []models.Metric{
-				{Value: 1.2323 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now()},
-				{Value: 1.56443213 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(1 * time.Second)},
-				{Value: 1.923491 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(2 * time.Second)},
-				{Value: 2.31231 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(3 * time.Second)},
-				{Value: 1.223132 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(4 * time.Second)},
-				{Value: 3.21321 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(5 * time.Second)},
-				{Value: 1.213213 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(6 * time.Second)},
-			},
-			Name:        fmt.Sprintf("Metric %d", i),
-			Description: fmt.Sprintf("Metric %d description", i),
-		})
-	}
-
-	return metrics
 }
 
 func replaceColors(res string) string {

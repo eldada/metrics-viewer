@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
 	"math/rand"
@@ -32,9 +33,13 @@ func (p *fileProvider) Get() ([]models.Metrics, error) {
 				{Value: 3.21321 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(5 * time.Second)},
 				{Value: 1.213213 * float64(rand.Intn(10)), Labels: nil, Timestamp: time.Now().Add(6 * time.Second)},
 			},
-			Name:        fmt.Sprintf("Metric %d", i),
-			Description: fmt.Sprintf("Metric %d description", i),
+			Name:        fmt.Sprintf("Metric %d-%d", i, rand.Intn(30)),
+			Description: fmt.Sprintf("Metric %d-%d description", i, rand.Intn(30)),
 		})
+	}
+
+	if rand.Intn(10) < 1 {
+		return nil, errors.New("can't get metrics")
 	}
 
 	return metrics, nil
