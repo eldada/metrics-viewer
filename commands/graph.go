@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"strconv"
@@ -62,10 +63,11 @@ func graphCmd(c *components.Context) error {
 	if err != nil {
 		return err
 	}
-
 	//TODO Change to debug
 	log.Info(fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
 		conf.file, conf.url, conf.interval, conf.timeWindow, conf.metrics))
+
+	visualization.NewIndex().Present()
 	return nil
 }
 
