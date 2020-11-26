@@ -18,12 +18,12 @@ func NewGraph() *graph {
 	return &graph{}
 }
 
-func (g *graph) SprintOnce(metrics models.Metrics) string {
+func (g *graph) SprintOnce(width, height int, metrics models.Metrics) string {
 	if len(metrics.Metrics) == 0 {
 		return ""
 	}
 
-	chart := tm.NewLineChart(100, 20)
+	chart := tm.NewLineChart(width, height)
 
 	data := new(tm.DataTable)
 	data.AddColumn("Time")

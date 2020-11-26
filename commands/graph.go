@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
@@ -67,7 +68,7 @@ func graphCmd(c *components.Context) error {
 	log.Info(fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
 		conf.file, conf.url, conf.interval, conf.timeWindow, conf.metrics))
 
-	visualization.NewIndex().Present()
+	visualization.NewIndex().Present(context.TODO(), 1 * time.Second)
 	return nil
 }
 
