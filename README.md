@@ -30,11 +30,13 @@ jfrog plugin uninstall metrics-viewer
     ```
     - Options:
     ```
-    -f | --file     <log-file> : Log file with the open metrics format
-    -u | --url      <url>      : The url endpoint to get metrics
-    -i | --interval <seconds>  : Scraping interval (default: 5)
-    -t | --time     <seconds>  : Time window to show
-    -m | --metric   <metrics>  : Comma delimited list of metrics to show
+    --file     <log-file> : Log file with the open metrics format
+    --url      <url>      : The url endpoint to get metrics
+    --user     <username> : Username for url requiring authentication
+    --password <password> : Password for url requiring authentication
+    --interval <seconds>  : Scraping interval (default: 5)
+    --time     <seconds>  : Time window to show
+    --metric   <metrics>  : Comma delimited list of metrics to show
     ```
     - Example:
     ```shell
