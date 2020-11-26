@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
+	"github.com/eldada/metrics-viewer/provider"
 	"github.com/rivo/tview"
 	"math/rand"
 	"strings"
@@ -25,7 +26,7 @@ func NewIndex() *index {
 	return &index{}
 }
 
-func (i *index) Present(ctx context.Context, interval time.Duration) {
+func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.app = tview.NewApplication()
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
 

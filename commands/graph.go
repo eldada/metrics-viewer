@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/eldada/metrics-viewer/provider"
 	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
@@ -59,6 +60,22 @@ type graphConfiguration struct {
 	metrics    []string
 }
 
+func (c graphConfiguration) Url() string {
+	return c.url
+}
+
+func (c graphConfiguration) File() string {
+	return c.file
+}
+
+func (c graphConfiguration) TimeWindow() time.Duration {
+	return c.timeWindow
+}
+
+func (c graphConfiguration) MetricKeys() []string {
+	return c.metrics
+}
+
 func graphCmd(c *components.Context) error {
 	conf, err := parseGraphCmdConfig(c)
 	if err != nil {
@@ -68,7 +85,12 @@ func graphCmd(c *components.Context) error {
 	log.Info(fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
 		conf.file, conf.url, conf.interval, conf.timeWindow, conf.metrics))
 
-	visualization.NewIndex().Present(context.TODO(), 1 * time.Second)
+	prov, err := provider.New(conf)
+	if err != nil {
+		return err
+	}
+
+	visualization.NewIndex().Present(context.TODO(), conf.interval, prov)
 	return nil
 }
 
