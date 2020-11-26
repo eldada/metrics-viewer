@@ -7,6 +7,7 @@ import (
 	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -100,11 +101,19 @@ func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 		url:  c.GetStringFlagValue("url"),
 	}
 
-	if conf.file == "" && conf.url == "" {
+	if conf.file == "" && conf.url == "" && os.Getenv("MOCK_METRICS_DATA") == "" {
 		return nil, fmt.Errorf("one flag is required: file | url")
 	}
 	if conf.file != "" && conf.url != "" {
 		return nil, fmt.Errorf("only one flag is required: file | url")
+	}
+
+	if conf.file != "" {
+		f, err := os.Open(conf.file)
+		if err != nil {
+			return nil, fmt.Errorf("could not open file %s: %w", conf.file, err)
+		}
+		_ = f.Close()
 	}
 
 	flagValue := c.GetStringFlagValue("interval")
