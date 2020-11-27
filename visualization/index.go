@@ -15,18 +15,21 @@ type Index interface {
 }
 
 type index struct {
-	currentMenu *tview.List
-	grid        *tview.Grid
-	app         *tview.Application
-	mainContent *tview.TextView
-	drawing     bool
-	provider    provider.Provider
-	header      *tview.TextView
+	currentMenu         *tview.List
+	grid                *tview.Grid
+	app                 *tview.Application
+	mainContent         *tview.TextView
+	drawing             bool
+	provider            provider.Provider
+	missingMetricsCache missingMetricsCache
+	header              *tview.TextView
 }
 
 func NewIndex() *index {
 	rand.Seed(time.Now().Unix())
-	return &index{}
+	return &index{
+		missingMetricsCache: newMissingMetricsCache(),
+	}
 }
 
 const defaultHeader = "JFrog metrics"
@@ -92,6 +95,7 @@ func (i *index) generateMenu() *tview.List {
 	} else {
 		i.header.SetText(defaultHeader)
 	}
+	metrics = i.missingMetricsCache.AddToMetrics(metrics)
 
 	for index, m := range metrics {
 		i.addItemToMenu(menu, index, m)

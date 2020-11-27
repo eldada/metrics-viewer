@@ -46,9 +46,3 @@ func filterByTimeWindow(metricsCollection []models.Metrics, window time.Duration
 	}
 	return newCollection
 }
-
-var nowFunc = time.Now
-
-func now() time.Time {
-	return nowFunc()
-}
