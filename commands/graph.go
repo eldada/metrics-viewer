@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/eldada/metrics-viewer/visualization"
+	"github.com/jfrog/jfrog-cli-core/artifactory/commands"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"os"
@@ -36,6 +37,23 @@ func getGraphFlags() []components.Flag {
 			Description: "url endpoint to use to get metrics",
 		},
 		components.StringFlag{
+			Name:        "user",
+			Description: "username for url requiring authentication",
+		},
+		components.StringFlag{
+			Name:        "password",
+			Description: "password for url requiring authentication",
+		},
+		components.BoolFlag{
+			Name:         "artifactory",
+			Description:  "call Artifactory to get the metrics",
+			DefaultValue: false,
+		},
+		components.StringFlag{
+			Name:        "server",
+			Description: "Artifactory server ID to call when --artifactory is given (uses current by default)",
+		},
+		components.StringFlag{
 			Name:         "interval",
 			Description:  "scraping interval in seconds",
 			DefaultValue: "5",
@@ -54,15 +72,15 @@ func getGraphFlags() []components.Flag {
 }
 
 type graphConfiguration struct {
-	file       string
-	url        string
-	interval   time.Duration
-	timeWindow time.Duration
-	metrics    []string
+	file              string
+	urlMetricsFetcher provider.UrlMetricsFetcher
+	interval          time.Duration
+	timeWindow        time.Duration
+	metrics           []string
 }
 
-func (c graphConfiguration) Url() string {
-	return c.url
+func (c graphConfiguration) UrlMetricsFetcher() provider.UrlMetricsFetcher {
+	return c.urlMetricsFetcher
 }
 
 func (c graphConfiguration) File() string {
@@ -78,8 +96,8 @@ func (c graphConfiguration) MetricKeys() []string {
 }
 
 func (c graphConfiguration) String() string {
-	return fmt.Sprintf("file: '%s', url: '%s', interval: %s, time: %s, metrics: %s",
-		c.file, c.url, c.interval, c.timeWindow, c.metrics)
+	return fmt.Sprintf("file: '%s', %s, interval: %s, time: %s, metrics: %s",
+		c.file, c.urlMetricsFetcher, c.interval, c.timeWindow, c.metrics)
 }
 
 func graphCmd(c *components.Context) error {
@@ -101,14 +119,25 @@ func graphCmd(c *components.Context) error {
 func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 	conf := graphConfiguration{
 		file: c.GetStringFlagValue("file"),
-		url:  c.GetStringFlagValue("url"),
 	}
+	url := c.GetStringFlagValue("url")
+	callArtifactory := c.GetBoolFlagValue("artifactory")
 
-	if conf.file == "" && conf.url == "" && os.Getenv("MOCK_METRICS_DATA") == "" {
-		return nil, fmt.Errorf("one flag is required: file | url")
+	countInputFlags := 0
+	if conf.file != "" {
+		countInputFlags++
 	}
-	if conf.file != "" && conf.url != "" {
-		return nil, fmt.Errorf("only one flag is required: file | url")
+	if url != "" {
+		countInputFlags++
+	}
+	if callArtifactory {
+		countInputFlags++
+	}
+	if countInputFlags == 0 && os.Getenv("MOCK_METRICS_DATA") == "" {
+		return nil, fmt.Errorf("one flag is required: --file | --url | --artifactory")
+	}
+	if countInputFlags > 1 {
+		return nil, fmt.Errorf("only one flag is required: --file | --url | --artifactory")
 	}
 
 	if conf.file != "" {
@@ -119,7 +148,31 @@ func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 		_ = f.Close()
 	}
 
-	flagValue := c.GetStringFlagValue("interval")
+	if callArtifactory {
+		serverId := c.GetStringFlagValue("server")
+		rtDetails, err := commands.GetConfig(serverId, false)
+		if err != nil {
+			msg := fmt.Sprintf("could not load configuration for Artifactory server %s", serverId)
+			if serverId == "" {
+				msg = "could not load configuration for current Artifactory server"
+			}
+			return nil, fmt.Errorf("%s; cause: %w", msg, err)
+		}
+		conf.urlMetricsFetcher, err = provider.NewArtifactoryMetricsFetcher(rtDetails)
+		if err != nil {
+			return nil, fmt.Errorf("could not initiate metrics fetcher from Artifactory; cause: %w", err)
+		}
+	}
+
+	if url != "" {
+		username := c.GetStringFlagValue("user")
+		password := c.GetStringFlagValue("password")
+		conf.urlMetricsFetcher = provider.NewUrlMetricsFetcher(url, username, password)
+	}
+
+	var flagValue string
+
+	flagValue = c.GetStringFlagValue("interval")
 	intValue, err := strconv.ParseInt(flagValue, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse interval value: %s; cause: %w", flagValue, err)
