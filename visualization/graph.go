@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tm "github.com/buger/goterm"
 	"github.com/eldada/metrics-viewer/models"
+	"sort"
 	"strings"
 )
 
@@ -65,11 +66,12 @@ func (g *graph) SprintOnce(width, height int, multipleMetrics ...models.Metrics)
 }
 
 func (g *graph) convertToData(timeData map[float64]map[int]float64, numberOfGraphs int, data *tm.DataTable) {
-	for key, timeValue := range timeData {
+	keysSorted := sortKeys(timeData)
+	for _, key := range keysSorted {
 		all := make([]float64, 0, numberOfGraphs+1)
 		all = append(all, key)
 		for graphIndex := 0; graphIndex < numberOfGraphs; graphIndex++ {
-			graphValue, ok := timeValue[graphIndex]
+			graphValue, ok := timeData[key][graphIndex]
 			if !ok {
 				graphValue = findPrev(timeData, graphIndex, key)
 			}
@@ -77,6 +79,17 @@ func (g *graph) convertToData(timeData map[float64]map[int]float64, numberOfGrap
 		}
 		data.AddRow(all...)
 	}
+}
+
+func sortKeys(data map[float64]map[int]float64) []float64 {
+	allKeys := make([]float64, 0, len(data))
+	for k, _ := range data {
+		allKeys = append(allKeys, k)
+	}
+
+	sort.Float64s(allKeys)
+
+	return allKeys
 }
 
 func findPrev(timeData map[float64]map[int]float64, graphIndex int, graphValueToSearch float64) float64 {

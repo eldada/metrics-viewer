@@ -9,6 +9,7 @@ import (
 	"github.com/rivo/tview"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,6 +29,7 @@ type index struct {
 	items               map[string]models.Metrics
 	hasError            bool
 	drawing             bool
+	selectedMutex       sync.Locker
 }
 
 func NewIndex() *index {
@@ -35,11 +37,14 @@ func NewIndex() *index {
 	return &index{
 		missingMetricsCache: newMissingMetricsCache(),
 		items:               map[string]models.Metrics{},
+		selectedMutex:       &sync.Mutex{},
 	}
 }
 
 const maximumSelectedItems = 10
 const defaultHeader = "JFrog metrics"
+const ignoreSecondaryText = "---N/A---"
+const highlightColor = "[darkgray::b](x) "
 
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.provider = prov
@@ -101,15 +106,20 @@ func (i *index) replaceMenuContentOnGrid() {
 
 	metrics = i.missingMetricsCache.AddToMetrics(metrics)
 
-	for index, m := range metrics {
+	for _, m := range metrics {
 		_, ok := i.items[m.Name]
 		if ok {
+			items := i.currentMenu.FindItems(m.Name, ignoreSecondaryText, false, false)
+			for _, item := range items {
+				i.currentMenu.SetItemText(item, m.Name, m.Description)
+			}
+
 			if selectedIndex := i.findSelectedIndex(m.Name); selectedIndex >= 0 {
 				i.removeSelected(selectedIndex)
-				i.selectedFunc(m.Name) // reselecting to redrawing
+				i.selectedFunc(m.Name) // reselect to redraw
 			}
 		} else {
-			i.addItemToMenu(index, m)
+			i.addItemToMenu(m)
 		}
 
 		i.items[m.Name] = m
@@ -130,6 +140,7 @@ func (i *index) generateMenu() *tview.List {
 }
 
 func (i *index) selectedFunc(name string) {
+	name = clearColor(name)
 	i.toggleSelected(name)
 
 	_, _, width, height := i.mainContent.GetInnerRect()
@@ -141,6 +152,8 @@ func (i *index) selectedFunc(name string) {
 }
 
 func (i *index) toggleSelected(name string) {
+	i.selectedMutex.Lock()
+	defer i.selectedMutex.Unlock()
 	selectedIndex := i.findSelectedIndex(name)
 	if selectedIndex >= 0 {
 		i.removeSelected(selectedIndex)
@@ -149,7 +162,32 @@ func (i *index) toggleSelected(name string) {
 			i.removeSelected(0)
 		}
 		i.selected = append(i.selected, name)
+		i.setSelectedItemColor(name)
 	}
+}
+
+func (i *index) setSelectedItemColor(name string) {
+	items := i.currentMenu.FindItems(name, ignoreSecondaryText, false, false)
+	for _, itemIndex := range items {
+		main, sec := i.currentMenu.GetItemText(itemIndex)
+		i.currentMenu.SetItemText(itemIndex, addSelectedColor(main), sec)
+	}
+}
+
+func (i *index) removeSelectedItemColor(name string) {
+	items := i.currentMenu.FindItems(addSelectedColor(clearColor(name)), ignoreSecondaryText, false, false)
+	for _, itemIndex := range items {
+		main, sec := i.currentMenu.GetItemText(itemIndex)
+		i.currentMenu.SetItemText(itemIndex, fmt.Sprintf("%s", clearColor(main)), sec)
+	}
+}
+
+func addSelectedColor(main string) string {
+	return fmt.Sprintf("%s%s[-]", highlightColor, main)
+}
+
+func clearColor(name string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(name, highlightColor), "[-]")
 }
 
 func (i *index) findSelectedIndex(name string) int {
@@ -163,6 +201,8 @@ func (i *index) findSelectedIndex(name string) int {
 }
 
 func (i *index) removeSelected(selectedIndex int) {
+	i.removeSelectedItemColor(i.selected[selectedIndex])
+
 	if selectedIndex >= 0 {
 		copy(i.selected[selectedIndex:], i.selected[selectedIndex+1:])
 		i.selected[len(i.selected)-1] = ""
@@ -185,7 +225,7 @@ func (i *index) addQuitMenuItem(menu *tview.List) {
 	menu.AddItem("Quit", "Press to exit", 'q', func() { i.app.Stop() })
 }
 
-func (i *index) addItemToMenu(index int, m models.Metrics) *tview.List {
+func (i *index) addItemToMenu(m models.Metrics) *tview.List {
 	return i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
 }
 
