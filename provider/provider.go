@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ type Config interface {
 	UrlMetricsFetcher() UrlMetricsFetcher
 	File() string
 	TimeWindow() time.Duration
-	MetricKeys() []string
+	Filter() *regexp.Regexp
 	AggregateIgnoreLabels() StringSet
 }
 
@@ -63,6 +64,16 @@ func filterByTimeWindow(metricsCollection []models.Metrics, window time.Duration
 		}
 		metrics.Metrics = filtered
 		newCollection = append(newCollection, metrics)
+	}
+	return newCollection
+}
+
+func filterByRegex(metricsCollection []models.Metrics, regex *regexp.Regexp) []models.Metrics {
+	var newCollection []models.Metrics
+	for _, metrics := range metricsCollection {
+		if regex.MatchString(metrics.Name) {
+			newCollection = append(newCollection, metrics)
+		}
 	}
 	return newCollection
 }

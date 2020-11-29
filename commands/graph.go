@@ -9,6 +9,7 @@ import (
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -64,9 +65,8 @@ func getGraphFlags() []components.Flag {
 			DefaultValue: "300",
 		},
 		components.StringFlag{
-			Name:         "metrics",
-			Description:  "comma delimited list of metrics to show (default: all)",
-			DefaultValue: "",
+			Name:        "filter",
+			Description: "regular expression to use for filtering the metrics",
 		},
 		components.StringFlag{
 			Name:         "aggregate-ignore-labels",
@@ -81,7 +81,7 @@ type graphConfiguration struct {
 	urlMetricsFetcher     provider.UrlMetricsFetcher
 	interval              time.Duration
 	timeWindow            time.Duration
-	metrics               []string
+	filter                *regexp.Regexp
 	aggregateIgnoreLabels provider.StringSet
 }
 
@@ -97,8 +97,8 @@ func (c graphConfiguration) TimeWindow() time.Duration {
 	return c.timeWindow
 }
 
-func (c graphConfiguration) MetricKeys() []string {
-	return c.metrics
+func (c graphConfiguration) Filter() *regexp.Regexp {
+	return c.filter
 }
 
 func (c graphConfiguration) AggregateIgnoreLabels() provider.StringSet {
@@ -106,8 +106,8 @@ func (c graphConfiguration) AggregateIgnoreLabels() provider.StringSet {
 }
 
 func (c graphConfiguration) String() string {
-	return fmt.Sprintf("file: '%s', %s, interval: %s, time: %s, metrics: %s",
-		c.file, c.urlMetricsFetcher, c.interval, c.timeWindow, c.metrics)
+	return fmt.Sprintf("file: '%s', %s, interval: %s, time: %s, filter: %s",
+		c.file, c.urlMetricsFetcher, c.interval, c.timeWindow, c.filter.String())
 }
 
 func graphCmd(c *components.Context) error {
@@ -202,9 +202,13 @@ func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 	}
 	conf.timeWindow = time.Duration(intValue) * time.Second
 
-	flagValue = c.GetStringFlagValue("metrics")
+	conf.filter = regexp.MustCompile(".*")
+	flagValue = c.GetStringFlagValue("filter")
 	if flagValue != "" {
-		conf.metrics = strings.Split(flagValue, ",")
+		conf.filter, err = regexp.Compile(flagValue)
+		if err != nil {
+			return nil, fmt.Errorf("invalid filter expression; cause: %w", err)
+		}
 	}
 
 	flagValue = c.GetStringFlagValue("aggregate-ignore-labels")
