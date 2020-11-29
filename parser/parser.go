@@ -1,21 +1,48 @@
 package parser
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"io"
+	"io/ioutil"
 	"sort"
+	"strings"
 	"time"
 )
 
 func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 	txtParser := expfmt.TextParser{}
-	prometheusMetrics, err := txtParser.TextToMetricFamilies(r)
+	data, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse metrics; cause: %w", err)
+		return nil, fmt.Errorf("failed to read metrics; cause: %w", err)
+	}
+	br := bytes.NewReader(data)
+	prometheusMetrics, err := txtParser.TextToMetricFamilies(br)
+	// Handle parsing errors due to bad comments, such as "second HELP line for metric"
+	if err != nil {
+		originalErr := err
+		br = bytes.NewReader(data)
+		txtWithoutComments := strings.Builder{}
+		scanner := bufio.NewScanner(br)
+		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "#") {
+				continue
+			}
+			txtWithoutComments.WriteString(scanner.Text())
+			txtWithoutComments.WriteRune('\n')
+		}
+		if scanner.Err() != nil {
+			return nil, fmt.Errorf("failed to read metrics without comments; cause: %w", err)
+		}
+		prometheusMetrics, err = txtParser.TextToMetricFamilies(strings.NewReader(txtWithoutComments.String()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse metrics without comments; cause: %w; original cause: %v", err, originalErr)
+		}
 	}
 	metricsCollection := make([]models.Metrics, 0)
 	for name, metricFamily := range prometheusMetrics {
