@@ -61,7 +61,7 @@ func getGraphFlags() []components.Flag {
 		components.StringFlag{
 			Name:         "time",
 			Description:  "time window to show in seconds",
-			DefaultValue: "60",
+			DefaultValue: "300",
 		},
 		components.StringFlag{
 			Name:         "metric",
