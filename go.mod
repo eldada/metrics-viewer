@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/buger/goterm v0.0.0-20200322175922-2f3e71b85129
+	github.com/gdamore/tcell v1.3.0
 	github.com/jfrog/jfrog-cli-core v0.0.1
 	github.com/jfrog/jfrog-client-go v0.16.0
 	github.com/pkg/errors v0.9.1
