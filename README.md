@@ -51,7 +51,7 @@ You can run a local Docker container of Artifactory to test or demo this plugin.
 docker run --rm -d --name artifactory \
     -p 8082:8082 \
     -e JF_ARTIFACTORY_METRICS_ENABLED=true \
-    -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintry.io/jfrog/artifactory-oss
+    -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintray.io/jfrog/artifactory-oss
 ```
 * Once Artifactory is up, you can see the metrics log file or [api endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
 ```shell
