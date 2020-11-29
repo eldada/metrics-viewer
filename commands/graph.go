@@ -64,19 +64,25 @@ func getGraphFlags() []components.Flag {
 			DefaultValue: "300",
 		},
 		components.StringFlag{
-			Name:         "metric",
+			Name:         "metrics",
 			Description:  "comma delimited list of metrics to show (default: all)",
 			DefaultValue: "",
+		},
+		components.StringFlag{
+			Name:         "aggregate-ignore-labels",
+			Description:  "comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels.",
+			DefaultValue: "start,end,status",
 		},
 	}
 }
 
 type graphConfiguration struct {
-	file              string
-	urlMetricsFetcher provider.UrlMetricsFetcher
-	interval          time.Duration
-	timeWindow        time.Duration
-	metrics           []string
+	file                  string
+	urlMetricsFetcher     provider.UrlMetricsFetcher
+	interval              time.Duration
+	timeWindow            time.Duration
+	metrics               []string
+	aggregateIgnoreLabels provider.StringSet
 }
 
 func (c graphConfiguration) UrlMetricsFetcher() provider.UrlMetricsFetcher {
@@ -93,6 +99,10 @@ func (c graphConfiguration) TimeWindow() time.Duration {
 
 func (c graphConfiguration) MetricKeys() []string {
 	return c.metrics
+}
+
+func (c graphConfiguration) AggregateIgnoreLabels() provider.StringSet {
+	return c.aggregateIgnoreLabels
 }
 
 func (c graphConfiguration) String() string {
@@ -195,6 +205,12 @@ func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 	flagValue = c.GetStringFlagValue("metrics")
 	if flagValue != "" {
 		conf.metrics = strings.Split(flagValue, ",")
+	}
+
+	flagValue = c.GetStringFlagValue("aggregate-ignore-labels")
+	conf.aggregateIgnoreLabels = provider.StringSet{}
+	if flagValue != "" {
+		conf.aggregateIgnoreLabels.Add(strings.Split(flagValue, ",")...)
 	}
 
 	return &conf, nil

@@ -18,6 +18,7 @@ type Config interface {
 	File() string
 	TimeWindow() time.Duration
 	MetricKeys() []string
+	AggregateIgnoreLabels() StringSet
 }
 
 func New(c Config) (Provider, error) {
@@ -31,6 +32,23 @@ func New(c Config) (Provider, error) {
 		return newUrlProvider(c)
 	}
 	return nil, fmt.Errorf("illegal state, could not create provider - file or url are mandatory")
+}
+
+type StringSet map[string]struct{}
+
+func (s StringSet) Contains(v string) bool {
+	_, ok := s[v]
+	return ok
+}
+
+func (s StringSet) Len() int {
+	return len(s)
+}
+
+func (s *StringSet) Add(values ...string) {
+	for _, v := range values {
+		(*s)[v] = struct{}{}
+	}
 }
 
 func filterByTimeWindow(metricsCollection []models.Metrics, window time.Duration) []models.Metrics {
@@ -81,16 +99,29 @@ func aggregateByLabels(c Config, metricsCollection []models.Metrics) []models.Me
 func generateMetricName(c Config, key string, labels map[string]string) string {
 	name := strings.Builder{}
 	name.WriteString(key)
-	if len(labels) > 0 {
+	if c.AggregateIgnoreLabels().Len() == 1 && c.AggregateIgnoreLabels().Contains("ALL") {
+		return name.String()
+	}
+	includeAll := c.AggregateIgnoreLabels().Len() == 1 && c.AggregateIgnoreLabels().Contains("NONE")
+	var orderedLabels []string
+	for k := range labels {
+		if includeAll || !c.AggregateIgnoreLabels().Contains(k) {
+			orderedLabels = append(orderedLabels, k)
+		}
+	}
+	sort.SliceStable(orderedLabels, func(i, j int) bool {
+		return orderedLabels[i] < orderedLabels[j]
+	})
+	if len(orderedLabels) > 0 {
 		name.WriteRune('{')
 		first := true
-		for k, v := range labels {
+		for _, k := range orderedLabels {
 			if first {
 				first = false
 			} else {
 				name.WriteRune(',')
 			}
-			name.WriteString(fmt.Sprintf(`%s="%s"`, k, v))
+			name.WriteString(fmt.Sprintf(`%s="%s"`, k, labels[k]))
 		}
 		name.WriteRune('}')
 	}
