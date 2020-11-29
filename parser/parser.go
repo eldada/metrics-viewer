@@ -45,9 +45,9 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		}
 	}
 	metricsCollection := make([]models.Metrics, 0)
-	for name, metricFamily := range prometheusMetrics {
+	for key, metricFamily := range prometheusMetrics {
 		if metricFamily.Type == nil {
-			log.Warn("undefined type for metric:", name)
+			log.Warn("undefined type for metric:", key)
 			continue
 		}
 		switch *metricFamily.Type {
@@ -55,11 +55,12 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		case io_prometheus_client.MetricType_COUNTER:
 		case io_prometheus_client.MetricType_UNTYPED:
 		default:
-			log.Warn(fmt.Sprintf("metric '%s' has unsupported type: %s", name, metricFamily.Type.String()))
+			log.Warn(fmt.Sprintf("metric '%s' has unsupported type: %s", key, metricFamily.Type.String()))
 			continue
 		}
 		metrics := models.Metrics{
-			Name: name,
+			Key:  key,
+			Name: key,
 		}
 		if metricFamily.Help != nil {
 			metrics.Description = *metricFamily.Help
@@ -67,12 +68,11 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		for _, promMetric := range metricFamily.Metric {
 			metric := models.Metric{}
 			if promMetric.TimestampMs == nil {
-				log.Warn(fmt.Sprintf("metric %s has an entry with no timestamp; skipped.", name))
+				log.Warn(fmt.Sprintf("metric %s has an entry with no timestamp; skipped.", key))
 				continue
 			}
 			metric.Timestamp = time.Unix(0, promMetric.GetTimestampMs()*int64(1000000))
-			// TODO handle labels
-			// metric.Labels = convertLabels(promMetric.Label)
+			metric.Labels = convertLabels(promMetric.Label)
 			switch *metricFamily.Type {
 			case io_prometheus_client.MetricType_COUNTER:
 				metric.Value = promMetric.Counter.GetValue()
@@ -94,4 +94,12 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		return metricsCollection[i].Name < metricsCollection[j].Name
 	})
 	return metricsCollection, nil
+}
+
+func convertLabels(labels []*io_prometheus_client.LabelPair) map[string]string {
+	result := make(map[string]string, 0)
+	for _, label := range labels {
+		result[*label.Name] = *label.Value
+	}
+	return result
 }

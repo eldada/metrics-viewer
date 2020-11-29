@@ -50,6 +50,7 @@ func (p *urlProvider) appendToCachedMetrics(metricsCollection []models.Metrics) 
 		newCollection = append(newCollection, m)
 	}
 	newCollection = filterByTimeWindow(newCollection, p.conf.TimeWindow())
+	newCollection = aggregateByLabels(p.conf, newCollection)
 	p.cachedMetrics = newCollection
 	return newCollection
 }

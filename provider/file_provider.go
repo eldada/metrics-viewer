@@ -27,5 +27,6 @@ func (p *fileProvider) Get() ([]models.Metrics, error) {
 		return nil, err
 	}
 	metrics = filterByTimeWindow(metrics, p.conf.TimeWindow())
+	metrics = aggregateByLabels(p.conf, metrics)
 	return metrics, nil
 }
