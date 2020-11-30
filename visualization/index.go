@@ -41,10 +41,12 @@ func NewIndex() *index {
 	}
 }
 
-const maximumSelectedItems = 10
+const maximumSelectedItems = 5
 const defaultHeader = "JFrog metrics"
 const ignoreSecondaryText = "---N/A---"
-const highlightColor = "[darkgray::b](x) "
+const highlightColor = "[lightgray::b](x) "
+
+var colors = []string{"[red]", "[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]", "[olive]", "[ivory]"}
 
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.provider = prov
@@ -94,7 +96,7 @@ func (i *index) replaceMenuContentOnGrid() {
 	metrics, err := i.provider.Get()
 
 	if err != nil {
-		i.setSecondHeader(fmt.Sprintf("[red]%s[-]", err.Error()))
+		i.setSecondHeader(fmt.Sprintf("[red]%s[-]", err.Error()), "")
 		i.hasError = true
 		return
 	}
@@ -134,7 +136,8 @@ func (i *index) generateMenu() *tview.List {
 	menu := tview.NewList()
 
 	menu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) { i.selectedFunc(name) })
-
+	menu.SetWrapAround(false)
+	menu.SetBorderPadding(1, 0, 1, 0)
 	i.addQuitMenuItem(menu)
 	return menu
 }
@@ -144,10 +147,10 @@ func (i *index) selectedFunc(name string) {
 	i.toggleSelected(name)
 
 	_, _, width, height := i.mainContent.GetInnerRect()
-	summary, selectedMetrics := i.selectedToList()
+	summary, descriptionSummary, selectedMetrics := i.selectedToList()
 	res := NewGraph().SprintOnce(width, height, selectedMetrics...)
 	i.mainContent.SetText(replaceColors(res))
-	i.setSecondHeader(fmt.Sprintf("[teal]%s[-]", summary))
+	i.setSecondHeader(summary, descriptionSummary)
 	i.hasError = false
 }
 
@@ -210,27 +213,35 @@ func (i *index) removeSelected(selectedIndex int) {
 	}
 }
 
-func (i *index) selectedToList() (string, []models.Metrics) {
+func (i *index) selectedToList() (string, string, []models.Metrics) {
 	selectedList := make([]models.Metrics, 0, len(i.selected))
 	selectedSummary := make([]string, 0, len(i.selected))
-	for _, val := range i.selected {
-		selectedList = append(selectedList, i.items[val])
-		selectedSummary = append(selectedSummary, val)
+	selectedDescSummary := make([]string, 0, len(i.selected))
+
+	for selectedIndex, val := range i.selected {
+		item := i.items[val]
+		selectedList = append(selectedList, item)
+		selectedSummary = append(selectedSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], val))
+		desc := item.Description
+		if desc == "" {
+			desc = "No description"
+		}
+		selectedDescSummary = append(selectedDescSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], desc))
 	}
 
-	return strings.Join(selectedSummary, ", "), selectedList
+	return strings.Join(selectedSummary, "[white] | [-]"), strings.Join(selectedDescSummary, "[white] | [-]"), selectedList
 }
 
 func (i *index) addQuitMenuItem(menu *tview.List) {
-	menu.AddItem("Quit", "Press to exit", 'q', func() { i.app.Stop() })
+	menu.AddItem("Quit", "Choose to exit", 0, func() { i.app.Stop() })
 }
 
 func (i *index) addItemToMenu(m models.Metrics) *tview.List {
 	return i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
 }
 
-func (i *index) setSecondHeader(secondHeader string) *tview.TextView {
-	return i.header.SetText(fmt.Sprintf("%s\n\n%s", defaultHeader, secondHeader))
+func (i *index) setSecondHeader(secondHeader string, thirdHeader string) *tview.TextView {
+	return i.header.SetText(fmt.Sprintf("%s\n%s\n%s", defaultHeader, secondHeader, thirdHeader))
 }
 
 func (i *index) findShortcut(index int) rune {
@@ -246,17 +257,17 @@ func (i *index) findShortcut(index int) rune {
 
 func replaceColors(res string) string {
 	colorsReplacement := map[string]string{
-		"\033[31m":  "[red]",
-		"\033[32m":  "[green]",
-		"\033[33m":  "[yellow]",
-		"\033[34m":  "[blue]",
-		"\033[35m":  "[teal]",
-		"\033[36m":  "[gray]",
-		"\033[37m":  "[gold]",
-		"\033[38m":  "[indigo]",
-		"\033[39m":  "[lavender]",
-		"\033[310m": "[olive]",
-		"\033[311m": "[ivory]",
+		"\033[31m":  colors[0],
+		"\033[32m":  colors[1],
+		"\033[33m":  colors[2],
+		"\033[34m":  colors[3],
+		"\033[35m":  colors[4],
+		"\033[36m":  colors[5],
+		"\033[37m":  colors[6],
+		"\033[38m":  colors[7],
+		"\033[39m":  colors[8],
+		"\033[310m": colors[9],
+		"\033[311m": colors[10],
 		"\u001B[0m": "[-]", // reset
 	}
 	for orig, newColor := range colorsReplacement {
