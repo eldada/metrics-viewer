@@ -17,27 +17,28 @@ type Index interface {
 }
 
 type index struct {
-	currentMenu         *tview.List
-	grid                *tview.Grid
-	app                 *tview.Application
-	mainContent         *tview.TextView
-	provider            provider.Provider
-	missingMetricsCache missingMetricsCache
-	header              *tview.TextView
-	metricName          *tview.TextView
-	selected            []string
-	items               map[string]models.Metrics
-	hasError            bool
-	drawing             bool
-	selectedMutex       sync.Locker
+	currentMenu          *tview.List
+	allItemsMenu         *tview.List
+	grid                 *tview.Grid
+	app                  *tview.Application
+	mainContent          *tview.TextView
+	provider             provider.Provider
+	missingMetricsCache  missingMetricsCache
+	header               *tview.TextView
+	metricName           *tview.TextView
+	selected             []string
+	items                map[string]models.Metrics
+	hasError             bool
+	drawing              bool
+	userInteractionMutex sync.Locker
 }
 
 func NewIndex() *index {
 	rand.Seed(time.Now().Unix())
 	return &index{
-		missingMetricsCache: newMissingMetricsCache(),
-		items:               map[string]models.Metrics{},
-		selectedMutex:       &sync.Mutex{},
+		missingMetricsCache:  newMissingMetricsCache(),
+		items:                map[string]models.Metrics{},
+		userInteractionMutex: &sync.Mutex{},
 	}
 }
 
@@ -45,14 +46,17 @@ const maximumSelectedItems = 5
 const defaultHeader = "JFrog metrics"
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
+const searchColor = "[darkgray:gray:b]"
 
-var colors = []string{"[red]", "[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]", "[olive]", "[ivory]"}
+var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]"}
+
+const searchItemIndex = 0
+const quitItemIndex = 1
 
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.provider = prov
 	i.app = tview.NewApplication()
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
-
 	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
 	i.grid = tview.NewGrid().
 		SetRows(3, 0).
@@ -64,6 +68,7 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.grid.SetBackgroundColor(tcell.ColorBlack)
 
 	newMenu := i.generateMenu()
+	i.allItemsMenu = newMenu
 	i.currentMenu = newMenu
 
 	i.grid.AddItem(i.mainContent, 1, 1, 1, 2, 0, 100, false)
@@ -111,9 +116,9 @@ func (i *index) replaceMenuContentOnGrid() {
 	for _, m := range metrics {
 		_, ok := i.items[m.Name]
 		if ok {
-			items := i.currentMenu.FindItems(m.Name, ignoreSecondaryText, false, false)
-			for _, item := range items {
-				i.currentMenu.SetItemText(item, m.Name, m.Description)
+			i.setDescriptionOnItems(i.currentMenu, m)
+			if i.allItemsMenu != i.currentMenu {
+				i.setDescriptionOnItems(i.allItemsMenu, m)
 			}
 
 			if selectedIndex := i.findSelectedIndex(m.Name); selectedIndex >= 0 {
@@ -132,18 +137,36 @@ func (i *index) replaceMenuContentOnGrid() {
 	}
 }
 
+func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
+	items := menu.FindItems(m.Name, ignoreSecondaryText, false, false)
+	for _, item := range items {
+		menu.SetItemText(item, m.Name, m.Description)
+	}
+}
+
 func (i *index) generateMenu() *tview.List {
 	menu := tview.NewList()
 
 	menu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) { i.selectedFunc(name) })
 	menu.SetWrapAround(false)
-	menu.SetBorderPadding(1, 0, 1, 0)
+	menu.SetBorderPadding(0, 0, 1, 0)
+	menu.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyRune {
+			i.searchbarInput(event.Rune())
+		} else if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
+			i.searchbarDelete()
+		}
+		return event
+	})
+	i.addSearchMenuItem(menu)
 	i.addQuitMenuItem(menu)
+
+	menu.SetCurrentItem(quitItemIndex)
 	return menu
 }
 
 func (i *index) selectedFunc(name string) {
-	name = clearColor(name)
+	name = clearColor(name, highlightColor)
 	i.toggleSelected(name)
 
 	_, _, width, height := i.mainContent.GetInnerRect()
@@ -155,8 +178,8 @@ func (i *index) selectedFunc(name string) {
 }
 
 func (i *index) toggleSelected(name string) {
-	i.selectedMutex.Lock()
-	defer i.selectedMutex.Unlock()
+	i.userInteractionMutex.Lock()
+	defer i.userInteractionMutex.Unlock()
 	selectedIndex := i.findSelectedIndex(name)
 	if selectedIndex >= 0 {
 		i.removeSelected(selectedIndex)
@@ -170,27 +193,36 @@ func (i *index) toggleSelected(name string) {
 }
 
 func (i *index) setSelectedItemColor(name string) {
-	items := i.currentMenu.FindItems(name, ignoreSecondaryText, false, false)
-	for _, itemIndex := range items {
-		main, sec := i.currentMenu.GetItemText(itemIndex)
-		i.currentMenu.SetItemText(itemIndex, addSelectedColor(main), sec)
+	converter := func(main string) string { return addColor(main, highlightColor) }
+	i.findAndUpdateItemText(i.currentMenu, name, converter)
+	if i.allItemsMenu != i.currentMenu {
+		i.findAndUpdateItemText(i.allItemsMenu, name, converter)
 	}
 }
 
 func (i *index) removeSelectedItemColor(name string) {
-	items := i.currentMenu.FindItems(addSelectedColor(clearColor(name)), ignoreSecondaryText, false, false)
-	for _, itemIndex := range items {
-		main, sec := i.currentMenu.GetItemText(itemIndex)
-		i.currentMenu.SetItemText(itemIndex, fmt.Sprintf("%s", clearColor(main)), sec)
+	converter := func(main string) string { return clearColor(main, highlightColor) }
+	modifiedName := addColor(clearColor(name, highlightColor), highlightColor)
+	i.findAndUpdateItemText(i.currentMenu, modifiedName, converter)
+	if i.allItemsMenu != i.currentMenu {
+		i.findAndUpdateItemText(i.allItemsMenu, modifiedName, converter)
 	}
 }
 
-func addSelectedColor(main string) string {
-	return fmt.Sprintf("%s%s[-]", highlightColor, main)
+func (i *index) findAndUpdateItemText(menu *tview.List, name string, converter func(string) string) {
+	items := menu.FindItems(name, ignoreSecondaryText, false, false)
+	for _, itemIndex := range items {
+		main, sec := menu.GetItemText(itemIndex)
+		menu.SetItemText(itemIndex, converter(main), sec)
+	}
 }
 
-func clearColor(name string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(name, highlightColor), "[-]")
+func addColor(main string, color string) string {
+	return fmt.Sprintf("%s%s[-]", color, main)
+}
+
+func clearColor(name string, color string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(name, color), "[-]")
 }
 
 func (i *index) findSelectedIndex(name string) int {
@@ -232,12 +264,27 @@ func (i *index) selectedToList() (string, string, []models.Metrics) {
 	return strings.Join(selectedSummary, "[white] | [-]"), strings.Join(selectedDescSummary, "[white] | [-]"), selectedList
 }
 
+func (i *index) addSearchMenuItem(menu *tview.List) {
+	menu.AddItem("", "", 0, nil)
+}
+
 func (i *index) addQuitMenuItem(menu *tview.List) {
 	menu.AddItem("Quit", "Choose to exit", 0, func() { i.app.Stop() })
 }
 
-func (i *index) addItemToMenu(m models.Metrics) *tview.List {
-	return i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
+func (i *index) addItemToMenu(m models.Metrics) {
+	i.allItemsMenu.AddItem(m.Name, m.Description, 0, nil)
+	if i.currentMenu != i.allItemsMenu {
+		searchText, _ := i.allItemsMenu.GetItemText(searchItemIndex)
+		clearedText := clearColor(searchText, searchColor)
+		if textContains(m.Name, clearedText) || textContains(m.Description, clearedText) {
+			i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
+		}
+	}
+}
+
+func textContains(text string, searchText string) bool {
+	return strings.Contains(strings.ToLower(text), strings.ToLower(searchText))
 }
 
 func (i *index) setSecondHeader(secondHeader string, thirdHeader string) *tview.TextView {
@@ -255,6 +302,64 @@ func (i *index) findShortcut(index int) rune {
 	return shortcut
 }
 
+func (i *index) searchbarInput(r rune) {
+	if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+		text, _ := i.allItemsMenu.GetItemText(searchItemIndex)
+		i.setSearchText(clearColor(text, searchColor) + string(r))
+	}
+}
+
+func (i *index) searchbarDelete() {
+	text, _ := i.allItemsMenu.GetItemText(searchItemIndex)
+	clearedText := clearColor(text, searchColor)
+	if len(clearedText) == 0 {
+		return
+	}
+	i.setSearchText(clearedText[:len(clearedText)-1])
+}
+
+func (i *index) setSearchText(newSearchText string) {
+	newSearchColored := addColor(newSearchText, searchColor)
+	i.allItemsMenu.SetItemText(searchItemIndex, newSearchColored, "")
+	if i.allItemsMenu != i.currentMenu {
+		i.currentMenu.SetItemText(searchItemIndex, newSearchColored, "")
+	}
+	i.refreshMenuAccordingToSearchInput(newSearchText)
+}
+
+func (i *index) refreshMenuAccordingToSearchInput(input string) {
+	i.userInteractionMutex.Lock()
+	defer i.userInteractionMutex.Unlock()
+	newMenu := i.allItemsMenu
+	alreadySetCurrentItem := false
+	if input != "" {
+		itemsIndexes := i.allItemsMenu.FindItems(input, input, false, true)
+		newMenu = i.generateMenu()
+		selectedMainText, _ := i.currentMenu.GetItemText(searchItemIndex)
+		clearedSearchText := clearColor(selectedMainText, searchColor)
+		for _, itemIndex := range itemsIndexes {
+			if itemIndex == quitItemIndex {
+				continue
+			}
+			text, secondary := i.allItemsMenu.GetItemText(itemIndex)
+			if itemIndex == searchItemIndex {
+				newMenu.SetItemText(searchItemIndex, text, secondary)
+				continue
+			}
+			newMenu.AddItem(text, secondary, 0, nil)
+			if !alreadySetCurrentItem && textContains(text, clearedSearchText) {
+				alreadySetCurrentItem = true
+				newMenu.SetCurrentItem(newMenu.GetItemCount() - 1)
+			}
+		}
+	}
+
+	i.grid.RemoveItem(i.currentMenu)
+	i.grid.AddItem(newMenu, 1, 0, 1, 1, 0, 100, false)
+	i.currentMenu = newMenu
+	i.app.SetFocus(i.currentMenu)
+}
+
 func replaceColors(res string) string {
 	colorsReplacement := map[string]string{
 		"\033[31m":  colors[0],
@@ -265,9 +370,6 @@ func replaceColors(res string) string {
 		"\033[36m":  colors[5],
 		"\033[37m":  colors[6],
 		"\033[38m":  colors[7],
-		"\033[39m":  colors[8],
-		"\033[310m": colors[9],
-		"\033[311m": colors[10],
 		"\u001B[0m": "[-]", // reset
 	}
 	for orig, newColor := range colorsReplacement {
