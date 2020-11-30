@@ -46,11 +46,11 @@ const maximumSelectedItems = 5
 const defaultHeader = "JFrog metrics"
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
-const searchColor = "[darkgray:gray:b]"
+const filterColor = "[darkgray:gray:b]Filter: "
 
 var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]"}
 
-const searchItemIndex = 0
+const filterItemIndex = 0
 const quitItemIndex = 1
 
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
@@ -158,7 +158,7 @@ func (i *index) generateMenu() *tview.List {
 		}
 		return event
 	})
-	i.addSearchMenuItem(menu)
+	i.addFilterMenuItem(menu)
 	i.addQuitMenuItem(menu)
 
 	menu.SetCurrentItem(quitItemIndex)
@@ -264,7 +264,7 @@ func (i *index) selectedToList() (string, string, []models.Metrics) {
 	return strings.Join(selectedSummary, "[white] | [-]"), strings.Join(selectedDescSummary, "[white] | [-]"), selectedList
 }
 
-func (i *index) addSearchMenuItem(menu *tview.List) {
+func (i *index) addFilterMenuItem(menu *tview.List) {
 	menu.AddItem("", "", 0, nil)
 }
 
@@ -275,16 +275,16 @@ func (i *index) addQuitMenuItem(menu *tview.List) {
 func (i *index) addItemToMenu(m models.Metrics) {
 	i.allItemsMenu.AddItem(m.Name, m.Description, 0, nil)
 	if i.currentMenu != i.allItemsMenu {
-		searchText, _ := i.allItemsMenu.GetItemText(searchItemIndex)
-		clearedText := clearColor(searchText, searchColor)
+		filterText, _ := i.allItemsMenu.GetItemText(filterItemIndex)
+		clearedText := clearColor(filterText, filterColor)
 		if textContains(m.Name, clearedText) || textContains(m.Description, clearedText) {
 			i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
 		}
 	}
 }
 
-func textContains(text string, searchText string) bool {
-	return strings.Contains(strings.ToLower(text), strings.ToLower(searchText))
+func textContains(text string, filterText string) bool {
+	return strings.Contains(strings.ToLower(text), strings.ToLower(filterText))
 }
 
 func (i *index) setSecondHeader(secondHeader string, thirdHeader string) *tview.TextView {
@@ -303,31 +303,34 @@ func (i *index) findShortcut(index int) rune {
 }
 
 func (i *index) searchbarInput(r rune) {
-	if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
-		text, _ := i.allItemsMenu.GetItemText(searchItemIndex)
-		i.setSearchText(clearColor(text, searchColor) + string(r))
+	if r >= '!' && r <= '~' {
+		text, _ := i.allItemsMenu.GetItemText(filterItemIndex)
+		i.setFilterText(clearColor(text, filterColor) + string(r))
 	}
 }
 
 func (i *index) searchbarDelete() {
-	text, _ := i.allItemsMenu.GetItemText(searchItemIndex)
-	clearedText := clearColor(text, searchColor)
+	text, _ := i.allItemsMenu.GetItemText(filterItemIndex)
+	clearedText := clearColor(text, filterColor)
 	if len(clearedText) == 0 {
 		return
 	}
-	i.setSearchText(clearedText[:len(clearedText)-1])
+	i.setFilterText(clearedText[:len(clearedText)-1])
 }
 
-func (i *index) setSearchText(newSearchText string) {
-	newSearchColored := addColor(newSearchText, searchColor)
-	i.allItemsMenu.SetItemText(searchItemIndex, newSearchColored, "")
-	if i.allItemsMenu != i.currentMenu {
-		i.currentMenu.SetItemText(searchItemIndex, newSearchColored, "")
+func (i *index) setFilterText(newFilterText string) {
+	newFilterColored := newFilterText
+	if len(newFilterText) > 0 {
+		newFilterColored = addColor(newFilterText, filterColor)
 	}
-	i.refreshMenuAccordingToSearchInput(newSearchText)
+	i.allItemsMenu.SetItemText(filterItemIndex, newFilterColored, "")
+	if i.allItemsMenu != i.currentMenu {
+		i.currentMenu.SetItemText(filterItemIndex, newFilterColored, "")
+	}
+	i.refreshMenuAccordingToFilterInput(newFilterText)
 }
 
-func (i *index) refreshMenuAccordingToSearchInput(input string) {
+func (i *index) refreshMenuAccordingToFilterInput(input string) {
 	i.userInteractionMutex.Lock()
 	defer i.userInteractionMutex.Unlock()
 	newMenu := i.allItemsMenu
@@ -335,19 +338,19 @@ func (i *index) refreshMenuAccordingToSearchInput(input string) {
 	if input != "" {
 		itemsIndexes := i.allItemsMenu.FindItems(input, input, false, true)
 		newMenu = i.generateMenu()
-		selectedMainText, _ := i.currentMenu.GetItemText(searchItemIndex)
-		clearedSearchText := clearColor(selectedMainText, searchColor)
+		selectedMainText, _ := i.currentMenu.GetItemText(filterItemIndex)
+		clearedFilterText := clearColor(selectedMainText, filterColor)
 		for _, itemIndex := range itemsIndexes {
 			if itemIndex == quitItemIndex {
 				continue
 			}
 			text, secondary := i.allItemsMenu.GetItemText(itemIndex)
-			if itemIndex == searchItemIndex {
-				newMenu.SetItemText(searchItemIndex, text, secondary)
+			if itemIndex == filterItemIndex {
+				newMenu.SetItemText(filterItemIndex, text, secondary)
 				continue
 			}
 			newMenu.AddItem(text, secondary, 0, nil)
-			if !alreadySetCurrentItem && textContains(text, clearedSearchText) {
+			if !alreadySetCurrentItem && textContains(text, clearedFilterText) {
 				alreadySetCurrentItem = true
 				newMenu.SetCurrentItem(newMenu.GetItemCount() - 1)
 			}
