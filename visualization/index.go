@@ -31,6 +31,7 @@ type index struct {
 	hasError             bool
 	drawing              bool
 	userInteractionMutex sync.Locker
+	rightPane            *tview.TextView
 }
 
 func NewIndex() *index {
@@ -57,10 +58,11 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.provider = prov
 	i.app = tview.NewApplication()
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
+	i.rightPane = tview.NewTextView().SetDynamicColors(true)
 	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
 	i.grid = tview.NewGrid().
 		SetRows(3, 0).
-		SetColumns(30, 0).
+		SetColumns(30, 0, 50).
 		SetBorders(true).
 		SetBordersColor(tcell.ColorDarkSeaGreen).
 		AddItem(i.header, 0, 0, 1, 3, 0, 0, false)
@@ -71,8 +73,9 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.allItemsMenu = newMenu
 	i.currentMenu = newMenu
 
-	i.grid.AddItem(i.mainContent, 1, 1, 1, 2, 0, 100, false)
 	i.grid.AddItem(i.currentMenu, 1, 0, 1, 1, 0, 100, false)
+	i.grid.AddItem(i.mainContent, 1, 1, 1, 1, 0, 100, false)
+	i.grid.AddItem(i.rightPane, 1, 2, 1, 1, 0, 100, false)
 
 	i.app = i.app.SetRoot(i.grid, true).SetFocus(i.currentMenu)
 	go i.updateMenuOnGrid(ctx, interval)
@@ -101,9 +104,11 @@ func (i *index) replaceMenuContentOnGrid() {
 	metrics, err := i.provider.Get()
 
 	if err != nil {
-		i.setSecondHeader(fmt.Sprintf("[red]%s[-]", err.Error()), "")
+		i.setSecondHeader(fmt.Sprintf("[red]%s[-]", err.Error()))
 		i.hasError = true
 		return
+	} else {
+		i.setSecondHeader("")
 	}
 
 	if i.hasError {
@@ -170,10 +175,10 @@ func (i *index) selectedFunc(name string) {
 	i.toggleSelected(name)
 
 	_, _, width, height := i.mainContent.GetInnerRect()
-	summary, descriptionSummary, selectedMetrics := i.selectedToList()
+	summary, selectedMetrics := i.selectedToList()
 	res := NewGraph().SprintOnce(width, height, selectedMetrics...)
 	i.mainContent.SetText(replaceColors(res))
-	i.setSecondHeader(summary, descriptionSummary)
+	i.setRightPane(summary)
 	i.hasError = false
 }
 
@@ -245,23 +250,39 @@ func (i *index) removeSelected(selectedIndex int) {
 	}
 }
 
-func (i *index) selectedToList() (string, string, []models.Metrics) {
+func (i *index) selectedToList() (string, []models.Metrics) {
 	selectedList := make([]models.Metrics, 0, len(i.selected))
 	selectedSummary := make([]string, 0, len(i.selected))
-	selectedDescSummary := make([]string, 0, len(i.selected))
 
 	for selectedIndex, val := range i.selected {
 		item := i.items[val]
 		selectedList = append(selectedList, item)
-		selectedSummary = append(selectedSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], val))
+		summaryToAdd := fmt.Sprintf("%s%s[-]\n", colors[selectedIndex], val)
 		desc := item.Description
 		if desc == "" {
 			desc = "No description"
 		}
-		selectedDescSummary = append(selectedDescSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], desc))
+		summaryToAdd += fmt.Sprintf("%s%s[-]\n", colors[selectedIndex], desc)
+		summaryToAdd += fmt.Sprintf("%sMax: %v[-]\n", colors[selectedIndex], findMaxMetricValue(item.Metrics))
+		summaryToAdd += fmt.Sprintf("%sCurrent: %v[-]\n", colors[selectedIndex], item.Metrics[len(item.Metrics)-1].Value)
+		selectedSummary = append(selectedSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], summaryToAdd))
 	}
 
-	return strings.Join(selectedSummary, "[white] | [-]"), strings.Join(selectedDescSummary, "[white] | [-]"), selectedList
+	return strings.Join(selectedSummary, "[white]\n[-]"), selectedList
+}
+
+func findMaxMetricValue(metrics []models.Metric) float64 {
+	if len(metrics) == 0 {
+		return 0
+	}
+	maxValue := metrics[0].Value
+	for _, m := range metrics {
+		if m.Value > maxValue {
+			maxValue = m.Value
+		}
+	}
+
+	return maxValue
 }
 
 func (i *index) addFilterMenuItem(menu *tview.List) {
@@ -287,8 +308,12 @@ func textContains(text string, filterText string) bool {
 	return strings.Contains(strings.ToLower(text), strings.ToLower(filterText))
 }
 
-func (i *index) setSecondHeader(secondHeader string, thirdHeader string) *tview.TextView {
-	return i.header.SetText(fmt.Sprintf("%s\n%s\n%s", defaultHeader, secondHeader, thirdHeader))
+func (i *index) setSecondHeader(secondHeader string) *tview.TextView {
+	return i.header.SetText(fmt.Sprintf("%s\n%s", defaultHeader, secondHeader))
+}
+
+func (i *index) setRightPane(secondHeader string) *tview.TextView {
+	return i.rightPane.SetText(secondHeader)
 }
 
 func (i *index) findShortcut(index int) rune {
