@@ -23,6 +23,7 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 	}
 	br := bytes.NewReader(data)
 	prometheusMetrics, err := txtParser.TextToMetricFamilies(br)
+	// TODO Instead of removing all comments - read metrics one by one, including the attached comments
 	// Handle parsing errors due to bad comments, such as "second HELP line for metric"
 	if err != nil {
 		originalErr := err

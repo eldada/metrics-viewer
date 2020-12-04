@@ -7,6 +7,7 @@ import (
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
+	"io"
 	"math/rand"
 	"strings"
 	"sync"
@@ -264,7 +265,7 @@ func (i *index) selectedToList() (string, []models.Metrics) {
 		}
 		summaryToAdd += fmt.Sprintf("%s%s[-]\n", colors[selectedIndex], desc)
 		summaryToAdd += fmt.Sprintf("%sMax: %v[-]\n", colors[selectedIndex], findMaxMetricValue(item.Metrics))
-		summaryToAdd += fmt.Sprintf("%sCurrent: %v[-]\n", colors[selectedIndex], item.Metrics[len(item.Metrics)-1].Value)
+		summaryToAdd += fmt.Sprintf("%sCurrent: %v[-]\n", colors[selectedIndex], findCurrentMetricValue(item.Metrics))
 		selectedSummary = append(selectedSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], summaryToAdd))
 	}
 
@@ -281,8 +282,14 @@ func findMaxMetricValue(metrics []models.Metric) float64 {
 			maxValue = m.Value
 		}
 	}
-
 	return maxValue
+}
+
+func findCurrentMetricValue(metrics []models.Metric) float64 {
+	if len(metrics) == 0 {
+		return 0
+	}
+	return metrics[len(metrics)-1].Value
 }
 
 func (i *index) addFilterMenuItem(menu *tview.List) {
@@ -290,7 +297,12 @@ func (i *index) addFilterMenuItem(menu *tview.List) {
 }
 
 func (i *index) addQuitMenuItem(menu *tview.List) {
-	menu.AddItem("Quit", "Choose to exit", 0, func() { i.app.Stop() })
+	menu.AddItem("Quit", "Choose to exit", 0, func() {
+		if closer, ok := i.provider.(io.Closer); ok {
+			_ = closer.Close()
+		}
+		i.app.Stop()
+	})
 }
 
 func (i *index) addItemToMenu(m models.Metrics) {

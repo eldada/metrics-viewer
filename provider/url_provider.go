@@ -8,13 +8,14 @@ import (
 
 func newUrlProvider(c Config) (*urlProvider, error) {
 	return &urlProvider{
-		conf: c,
+		conf:          c,
+		cachedMetrics: newMetricsCache(c),
 	}, nil
 }
 
 type urlProvider struct {
 	conf          Config
-	cachedMetrics []models.Metrics
+	cachedMetrics *metricsCache
 }
 
 func (p *urlProvider) Get() ([]models.Metrics, error) {
@@ -28,30 +29,6 @@ func (p *urlProvider) Get() ([]models.Metrics, error) {
 	if err != nil {
 		return nil, err
 	}
-	metrics = p.appendToCachedMetrics(metrics)
+	metrics = p.cachedMetrics.Add(metrics)
 	return metrics, nil
-}
-
-func (p *urlProvider) appendToCachedMetrics(metricsCollection []models.Metrics) []models.Metrics {
-	metricsMap := make(map[string]models.Metrics, len(metricsCollection))
-	for _, m := range metricsCollection {
-		metricsMap[m.Name] = m
-	}
-	var newCollection []models.Metrics
-	for _, m := range p.cachedMetrics {
-		fetchedMetrics, found := metricsMap[m.Name]
-		if found {
-			m.Metrics = append(m.Metrics, fetchedMetrics.Metrics...)
-			delete(metricsMap, m.Name)
-		}
-		newCollection = append(newCollection, m)
-	}
-	for _, m := range metricsMap {
-		newCollection = append(newCollection, m)
-	}
-	newCollection = filterByTimeWindow(newCollection, p.conf.TimeWindow())
-	newCollection = aggregateByLabels(p.conf, newCollection)
-	newCollection = filterByRegex(newCollection, p.conf.Filter())
-	p.cachedMetrics = newCollection
-	return newCollection
 }

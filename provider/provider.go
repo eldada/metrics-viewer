@@ -17,6 +17,7 @@ type Provider interface {
 type Config interface {
 	UrlMetricsFetcher() UrlMetricsFetcher
 	File() string
+	Interval() time.Duration
 	TimeWindow() time.Duration
 	Filter() *regexp.Regexp
 	AggregateIgnoreLabels() StringSet

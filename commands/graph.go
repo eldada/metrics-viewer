@@ -93,6 +93,10 @@ func (c graphConfiguration) File() string {
 	return c.file
 }
 
+func (c graphConfiguration) Interval() time.Duration {
+	return c.interval
+}
+
 func (c graphConfiguration) TimeWindow() time.Duration {
 	return c.timeWindow
 }
