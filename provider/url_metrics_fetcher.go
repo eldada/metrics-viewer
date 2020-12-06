@@ -86,6 +86,9 @@ func (f urlMetricsFetcher) Get() ([]byte, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status: %s", res.Status)
+	}
 	return ioutil.ReadAll(res.Body)
 }
 
