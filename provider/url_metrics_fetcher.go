@@ -45,7 +45,7 @@ func (f *artifactoryMetricsFetcher) Get() ([]byte, error) {
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code: %d", res.StatusCode)
+		return nil, fmt.Errorf("unexpected response status: %s", res.Status)
 	}
 	if len(body) == 0 {
 		return nil, fmt.Errorf("response body is empty")
