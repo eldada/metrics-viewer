@@ -57,22 +57,20 @@ func (f artifactoryMetricsFetcher) String() string {
 	return fmt.Sprintf("url: %s, user: %s", f.url, f.clientDetails.User)
 }
 
-func NewUrlMetricsFetcher(url, username, password string) *urlMetricsFetcher {
+func NewUrlMetricsFetcher(url string, authenticator Authenticator) *urlMetricsFetcher {
 	return &urlMetricsFetcher{
-		url:      url,
-		username: username,
-		password: password,
+		url:           url,
+		authenticator: authenticator,
 	}
 }
 
 type urlMetricsFetcher struct {
-	url      string
-	username string
-	password string
+	url           string
+	authenticator Authenticator
 }
 
 func (f urlMetricsFetcher) String() string {
-	return fmt.Sprintf("url: %s, user: %s", f.url, f.username)
+	return fmt.Sprintf("url: %s, auth-by-%s", f.url, f.authenticator)
 }
 
 func (f urlMetricsFetcher) Get() ([]byte, error) {
@@ -80,9 +78,8 @@ func (f urlMetricsFetcher) Get() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if f.username != "" {
-		credsEncoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", f.username, f.password)))
-		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", credsEncoded))
+	if f.authenticator != nil {
+		f.authenticator.Authorize(req)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -90,4 +87,34 @@ func (f urlMetricsFetcher) Get() ([]byte, error) {
 	}
 	defer res.Body.Close()
 	return ioutil.ReadAll(res.Body)
+}
+
+type Authenticator interface {
+	Authorize(req *http.Request)
+}
+
+type UserPassAuthenticator struct {
+	Username string
+	Password string
+}
+
+func (a UserPassAuthenticator) Authorize(req *http.Request) {
+	credsEncoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", a.Username, a.Password)))
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", credsEncoded))
+}
+
+func (a UserPassAuthenticator) String() string {
+	return fmt.Sprintf("user: %s", a.Username)
+}
+
+type AccessTokenAuthenticator struct {
+	Token string
+}
+
+func (a AccessTokenAuthenticator) Authorize(req *http.Request) {
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.Token))
+}
+
+func (a AccessTokenAuthenticator) String() string {
+	return fmt.Sprintf("token: *****")
 }

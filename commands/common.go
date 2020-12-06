@@ -24,12 +24,17 @@ var UrlFlag = components.StringFlag{
 
 var UserFlag = components.StringFlag{
 	Name:        "user",
-	Description: "username for url requiring authentication",
+	Description: "username for url requiring authentication (see --password)",
 }
 
 var PasswordFlag = components.StringFlag{
 	Name:        "password",
-	Description: "password for url requiring authentication",
+	Description: "password for url requiring authentication (see --user)",
+}
+
+var TokenFlag = components.StringFlag{
+	Name:        "token",
+	Description: "access token for url requiring authentication",
 }
 
 var ArtifactoryFlag = components.BoolFlag{
@@ -66,6 +71,7 @@ func getCommonFlags() []components.Flag {
 		UrlFlag,
 		UserFlag,
 		PasswordFlag,
+		TokenFlag,
 		ArtifactoryFlag,
 		ServerFlag,
 		IntervalFlag,
@@ -156,9 +162,25 @@ func parseCommonConfig(c *components.Context) (*commonConfiguration, error) {
 	}
 
 	if url != "" {
+		var authenticator provider.Authenticator
 		username := c.GetStringFlagValue("user")
 		password := c.GetStringFlagValue("password")
-		conf.urlMetricsFetcher = provider.NewUrlMetricsFetcher(url, username, password)
+		if username != "" {
+			authenticator = provider.UserPassAuthenticator{
+				Username: username,
+				Password: password,
+			}
+		}
+		token := c.GetStringFlagValue("token")
+		if token != "" {
+			if authenticator != nil {
+				return nil, fmt.Errorf("cannot use both user-password credentials and an access token; choose one")
+			}
+			authenticator = provider.AccessTokenAuthenticator{
+				Token: token,
+			}
+		}
+		conf.urlMetricsFetcher = provider.NewUrlMetricsFetcher(url, authenticator)
 	}
 
 	var flagValue string
