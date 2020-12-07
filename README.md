@@ -6,6 +6,12 @@ A plugin or standalone binary to show [open-metrics](https://openmetrics.io/) fo
 ## About this plugin
 This JFrog CLI plugin is for viewing JFrog products metrics in real time in a terminal. 
 
+## Building from source
+To build the **metrics-viewer** binary
+```
+go build .
+```
+
 ## Installation with JFrog CLI
 Installing the latest version:
 ```shell
