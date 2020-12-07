@@ -1,5 +1,6 @@
 # metrics-viewer
 A utility to show [open-metrics](https://openmetrics.io/) formatted data in a terminal based graph.
+![The Metrics Viewer Graph](images/metrics-viewer-graph.png)
 
 ## About this plugin
 This JFrog CLI plugin is for viewing JFrog products metrics in real time in a terminal. 
@@ -79,11 +80,17 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 
 ```
 
-### Environment variables
-* DUMMY - place holder
+### The Viewer
+Once running, the viewer will show 3 main sections
+- Left pane: List of available metrics
+- Center pane: Graph of selected metrics
+- Right pane: Selected metrics Max and current values 
 
-## Additional info
-None.
+#### Keys
+- Up/Down arrow keys: Move between available metrics
+- Space/Enter: Select/Deselect metric to view
+- Free text: Apply text filter on available metrics
+- Ctrl+C: Close **metrics-viewer**
 
 ## Release Notes
 The release notes are available [here](RELEASE.md).
