@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"io"
 	"math/rand"
@@ -82,7 +82,9 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.app = i.app.SetRoot(i.grid, true).SetFocus(i.currentMenu)
 	go i.updateMenuOnGrid(ctx, interval)
 	i.replaceMenuContentOnGrid()
-	i.drawing = true
+	i.app.SetAfterDrawFunc(func(screen tcell.Screen) {
+		i.drawing = true
+	})
 	if err := i.app.Run(); err != nil {
 		panic(err)
 	}
@@ -152,7 +154,7 @@ func (i *index) upsertMetricsOnMenu(metrics []models.Metrics) {
 }
 
 func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
-	items := menu.FindItems(m.Name, ignoreSecondaryText, false, false)
+	items := i.findExactMatch(menu, m.Name)
 	for _, item := range items {
 		menu.SetItemText(item, m.Name, m.Description)
 	}
@@ -229,11 +231,26 @@ func (i *index) removeSelectedItemColor(name string) {
 }
 
 func (i *index) findAndUpdateItemText(menu *tview.List, name string, converter func(string) string) {
-	items := menu.FindItems(name, ignoreSecondaryText, false, false)
+	items := i.findExactMatch(menu, name)
 	for _, itemIndex := range items {
 		main, sec := menu.GetItemText(itemIndex)
 		menu.SetItemText(itemIndex, converter(main), sec)
 	}
+}
+
+func (i *index) findExactMatch(menu *tview.List, name string) []int {
+	candidateItems := menu.FindItems(name, ignoreSecondaryText, false, false)
+	items := make([]int, 0, len(candidateItems))
+	for _, item := range candidateItems {
+		main, _ := i.currentMenu.GetItemText(item)
+
+		// Protecting vs prefix matching
+		if main == name {
+			items = append(items, item)
+		}
+	}
+
+	return items
 }
 
 func addColor(main string, color string) string {
