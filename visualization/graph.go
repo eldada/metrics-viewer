@@ -51,7 +51,7 @@ func (g *graph) SprintOnce(width, height int, multipleMetrics ...models.Metrics)
 		return ""
 	}
 
-	g.convertToData(timeData, numberOfGraphs, data)
+	convertToData(timeData, numberOfGraphs, data)
 
 	stringBuilder := &strings.Builder{}
 	tm.Output = bufio.NewWriter(stringBuilder)
@@ -65,7 +65,11 @@ func (g *graph) SprintOnce(width, height int, multipleMetrics ...models.Metrics)
 	return stringBuilder.String()
 }
 
-func (g *graph) convertToData(timeData map[float64]map[int]float64, numberOfGraphs int, data *tm.DataTable) {
+type rowAggregator interface {
+	AddRow(elms ...float64)
+}
+
+func convertToData(timeData map[float64]map[int]float64, numberOfGraphs int, data rowAggregator) {
 	keysSorted := sortKeys(timeData)
 	for _, key := range keysSorted {
 		all := make([]float64, 0, numberOfGraphs+1)
@@ -73,7 +77,7 @@ func (g *graph) convertToData(timeData map[float64]map[int]float64, numberOfGrap
 		for graphIndex := 0; graphIndex < numberOfGraphs; graphIndex++ {
 			graphValue, ok := timeData[key][graphIndex]
 			if !ok {
-				graphValue = findPrev(timeData, graphIndex, key)
+				graphValue = findPrevValue(timeData, graphIndex, key)
 			}
 			all = append(all, graphValue)
 		}
@@ -92,12 +96,12 @@ func sortKeys(data map[float64]map[int]float64) []float64 {
 	return allKeys
 }
 
-func findPrev(timeData map[float64]map[int]float64, graphIndex int, graphValueToSearch float64) float64 {
+func findPrevValue(timeData map[float64]map[int]float64, graphIndex int, graphValueToSearch float64) float64 {
 	valueToReturn := float64(0)
 	for key, value := range timeData {
-		for currGraphIndex, _ := range value {
+		for currGraphIndex, currVal := range value {
 			if currGraphIndex == graphIndex && key < graphValueToSearch {
-				valueToReturn = key
+				valueToReturn = currVal
 			}
 		}
 	}

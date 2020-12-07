@@ -55,6 +55,7 @@ var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gol
 const filterItemIndex = 0
 const quitItemIndex = 1
 
+// Main function to create the application
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.provider = prov
 	i.app = tview.NewApplication()
@@ -87,6 +88,7 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	}
 }
 
+// A ticker to update the metrics from the source
 func (i *index) updateMenuOnGrid(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -101,6 +103,7 @@ func (i *index) updateMenuOnGrid(ctx context.Context, interval time.Duration) {
 	}
 }
 
+// Recreating the menu every time an update has arrived
 func (i *index) replaceMenuContentOnGrid() {
 	metrics, err := i.provider.Get()
 
@@ -119,6 +122,15 @@ func (i *index) replaceMenuContentOnGrid() {
 
 	metrics = i.missingMetricsCache.AddToMetrics(metrics)
 
+	i.upsertMetricsOnMenu(metrics)
+
+	if i.drawing {
+		i.app.Draw()
+	}
+}
+
+// Adding new metrics or updating the current ones
+func (i *index) upsertMetricsOnMenu(metrics []models.Metrics) {
 	for _, m := range metrics {
 		_, ok := i.items[m.Name]
 		if ok {
@@ -137,10 +149,6 @@ func (i *index) replaceMenuContentOnGrid() {
 
 		i.items[m.Name] = m
 	}
-
-	if i.drawing {
-		i.app.Draw()
-	}
 }
 
 func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
@@ -150,6 +158,7 @@ func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
 	}
 }
 
+// Generating a new menu to replace, useful for the searchbar capability
 func (i *index) generateMenu() *tview.List {
 	menu := tview.NewList()
 
@@ -161,6 +170,8 @@ func (i *index) generateMenu() *tview.List {
 			i.searchbarInput(event.Rune())
 		} else if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
 			i.searchbarDelete()
+		} else if event.Key() == tcell.KeyEscape {
+			i.searchbarClear()
 		}
 		return event
 	})
@@ -171,6 +182,7 @@ func (i *index) generateMenu() *tview.List {
 	return menu
 }
 
+// Reacting to the user selection
 func (i *index) selectedFunc(name string) {
 	name = clearColor(name, highlightColor)
 	i.toggleSelected(name)
@@ -183,6 +195,7 @@ func (i *index) selectedFunc(name string) {
 	i.hasError = false
 }
 
+// Inverting a menu item selection
 func (i *index) toggleSelected(name string) {
 	i.userInteractionMutex.Lock()
 	defer i.userInteractionMutex.Unlock()
@@ -251,6 +264,7 @@ func (i *index) removeSelected(selectedIndex int) {
 	}
 }
 
+// Converting the selected items into a list of metrics
 func (i *index) selectedToList() (string, []models.Metrics) {
 	selectedList := make([]models.Metrics, 0, len(i.selected))
 	selectedSummary := make([]string, 0, len(i.selected))
@@ -328,17 +342,6 @@ func (i *index) setRightPane(secondHeader string) *tview.TextView {
 	return i.rightPane.SetText(secondHeader)
 }
 
-func (i *index) findShortcut(index int) rune {
-	shortcut := rune(index + 97)
-	if shortcut >= 'q' {
-		shortcut++
-	}
-	if shortcut > 'z' {
-		shortcut = 0
-	}
-	return shortcut
-}
-
 func (i *index) searchbarInput(r rune) {
 	if r >= '!' && r <= '~' {
 		text, _ := i.allItemsMenu.GetItemText(filterItemIndex)
@@ -355,6 +358,10 @@ func (i *index) searchbarDelete() {
 	i.setFilterText(clearedText[:len(clearedText)-1])
 }
 
+func (i *index) searchbarClear() {
+	i.setFilterText("")
+}
+
 func (i *index) setFilterText(newFilterText string) {
 	newFilterColored := newFilterText
 	if len(newFilterText) > 0 {
@@ -367,6 +374,7 @@ func (i *index) setFilterText(newFilterText string) {
 	i.refreshMenuAccordingToFilterInput(newFilterText)
 }
 
+// This function should be used as part of the searchbar functionality to show only relevant menu items
 func (i *index) refreshMenuAccordingToFilterInput(input string) {
 	i.userInteractionMutex.Lock()
 	defer i.userInteractionMutex.Unlock()
