@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
@@ -54,7 +55,7 @@ func graphCmd(c *components.Context) error {
 	}
 	log.Debug("command config:", conf)
 
-	prov, err := provider.New(conf)
+	prov, err := newGraphMetricsProvider(conf)
 	if err != nil {
 		return err
 	}
@@ -83,4 +84,40 @@ func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
 	conf.timeWindow = time.Duration(intValue) * time.Second
 
 	return &conf, nil
+}
+
+func newGraphMetricsProvider(conf provider.Config) (*graphMetricsProvider, error) {
+	prov, err := provider.New(conf)
+	if err != nil {
+		return nil, err
+	}
+	return &graphMetricsProvider{
+		provider:          prov,
+		mapMetrics:        provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), ","),
+		shouldKeepMetrics: provider.NewRegexMetricsFilter(conf.Filter()),
+		cachedMetrics:     provider.NewMetricsCache(conf.TimeWindow()),
+	}, nil
+}
+
+type graphMetricsProvider struct {
+	provider          provider.Provider
+	mapMetrics        provider.MetricsMapperFunc
+	shouldKeepMetrics provider.MetricsFilterFunc
+	cachedMetrics     *provider.MetricsCache
+}
+
+func (p graphMetricsProvider) Get() ([]models.Metrics, error) {
+	metricsCollection, err := p.provider.Get()
+	if err != nil {
+		return nil, err
+	}
+	newCollection := p.mapMetrics(metricsCollection)
+	for _, metrics := range newCollection {
+		if !p.shouldKeepMetrics(metrics) {
+			continue
+		}
+		newCollection = append(newCollection, metrics)
+	}
+	newCollection = p.cachedMetrics.Add(newCollection)
+	return newCollection, nil
 }

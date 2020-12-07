@@ -8,14 +8,12 @@ import (
 
 func newUrlProvider(c Config) (*urlProvider, error) {
 	return &urlProvider{
-		conf:          c,
-		cachedMetrics: newMetricsCache(c),
+		conf: c,
 	}, nil
 }
 
 type urlProvider struct {
-	conf          Config
-	cachedMetrics *metricsCache
+	conf Config
 }
 
 func (p *urlProvider) Get() ([]models.Metrics, error) {
@@ -29,6 +27,5 @@ func (p *urlProvider) Get() ([]models.Metrics, error) {
 	if err != nil {
 		return nil, err
 	}
-	metrics = p.cachedMetrics.Add(metrics)
 	return metrics, nil
 }

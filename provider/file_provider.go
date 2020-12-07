@@ -18,16 +18,14 @@ func newFileProvider(c Config) (*fileProvider, error) {
 		return nil, err
 	}
 	return &fileProvider{
-		conf:          c,
-		tail:          t,
-		cachedMetrics: newMetricsCache(c),
+		conf: c,
+		tail: t,
 	}, nil
 }
 
 type fileProvider struct {
 	conf          Config
 	tail          *tail.Tail
-	cachedMetrics *metricsCache
 	stagedMetrics []models.Metrics
 }
 
@@ -81,7 +79,6 @@ func (p *fileProvider) Get() ([]models.Metrics, error) {
 		}
 	}
 	p.stagedMetrics = nil
-	metricsCollection = p.cachedMetrics.Add(metricsCollection)
 	return metricsCollection, nil
 }
 

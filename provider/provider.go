@@ -53,71 +53,54 @@ func (s *StringSet) Add(values ...string) {
 	}
 }
 
-func filterByTimeWindow(metricsCollection []models.Metrics, window time.Duration) []models.Metrics {
-	startFrom := now().UTC().Add(window * time.Duration(-1))
-	var newCollection []models.Metrics
-	for _, metrics := range metricsCollection {
-		var filtered []models.Metric
-		for _, metric := range metrics.Metrics {
-			if metric.Timestamp.After(startFrom) {
-				filtered = append(filtered, metric)
+type MetricsFilterFunc func(metrics models.Metrics) bool
+
+func NewRegexMetricsFilter(regex *regexp.Regexp) MetricsFilterFunc {
+	return func(metrics models.Metrics) bool {
+		return regex.MatchString(metrics.Name)
+	}
+}
+
+type MetricsMapperFunc func(metricsCollection []models.Metrics) []models.Metrics
+
+func NewLabelsMetricsMapper(ignoredLabels StringSet, delim string) MetricsMapperFunc {
+	return func(metricsCollection []models.Metrics) []models.Metrics {
+		metricsMap := make(map[string]models.Metrics, 0)
+		for _, metrics := range metricsCollection {
+			for _, metric := range metrics.Metrics {
+				name := generateMetricName(ignoredLabels, delim, metrics.Key, metric.Labels)
+				mappedMetrics, found := metricsMap[name]
+				if !found {
+					mappedMetrics = models.Metrics{
+						Key:  metrics.Key,
+						Name: name,
+					}
+				}
+				if mappedMetrics.Description == "" {
+					mappedMetrics.Description = metrics.Description
+				}
+				mappedMetrics.Metrics = append(mappedMetrics.Metrics, metric)
+				metricsMap[name] = mappedMetrics
 			}
 		}
-		metrics.Metrics = filtered
-		newCollection = append(newCollection, metrics)
-	}
-	return newCollection
-}
-
-func filterByRegex(metricsCollection []models.Metrics, regex *regexp.Regexp) []models.Metrics {
-	var newCollection []models.Metrics
-	for _, metrics := range metricsCollection {
-		if regex.MatchString(metrics.Name) {
-			newCollection = append(newCollection, metrics)
+		newCollection := make([]models.Metrics, 0, len(metricsMap))
+		for _, v := range metricsMap {
+			newCollection = append(newCollection, v)
 		}
+		return newCollection
 	}
-	return newCollection
 }
 
-func aggregateByLabels(c Config, metricsCollection []models.Metrics) []models.Metrics {
-	metricsMap := make(map[string]models.Metrics, 0)
-	for _, metrics := range metricsCollection {
-		for _, metric := range metrics.Metrics {
-			name := generateMetricName(c, metrics.Key, metric.Labels)
-			aggMetrics, found := metricsMap[name]
-			if !found {
-				aggMetrics = models.Metrics{
-					Key:  metrics.Key,
-					Name: name,
-				}
-				if metrics.Description != "" {
-					aggMetrics.Description = metrics.Description
-				}
-			}
-			aggMetrics.Metrics = append(aggMetrics.Metrics, metric)
-			metricsMap[name] = aggMetrics
-		}
-	}
-	newCollection := make([]models.Metrics, 0, len(metricsMap))
-	for _, v := range metricsMap {
-		newCollection = append(newCollection, v)
-	}
-	sort.SliceStable(newCollection, func(i, j int) bool {
-		return newCollection[i].Name < newCollection[j].Name
-	})
-	return newCollection
-}
-
-func generateMetricName(c Config, key string, labels map[string]string) string {
+func generateMetricName(ignoredLabels StringSet, delim string, key string, labels map[string]string) string {
 	name := strings.Builder{}
 	name.WriteString(key)
-	if c.AggregateIgnoreLabels().Len() == 1 && c.AggregateIgnoreLabels().Contains("ALL") {
+	if ignoredLabels.Len() == 1 && ignoredLabels.Contains("ALL") {
 		return name.String()
 	}
-	includeAll := c.AggregateIgnoreLabels().Len() == 1 && c.AggregateIgnoreLabels().Contains("NONE")
+	includeAll := ignoredLabels.Len() == 1 && ignoredLabels.Contains("NONE")
 	var orderedLabels []string
 	for k := range labels {
-		if includeAll || !c.AggregateIgnoreLabels().Contains(k) {
+		if includeAll || !ignoredLabels.Contains(k) {
 			orderedLabels = append(orderedLabels, k)
 		}
 	}
@@ -131,7 +114,7 @@ func generateMetricName(c Config, key string, labels map[string]string) string {
 			if first {
 				first = false
 			} else {
-				name.WriteRune(',')
+				name.WriteString(delim)
 			}
 			name.WriteString(fmt.Sprintf(`%s="%s"`, k, labels[k]))
 		}

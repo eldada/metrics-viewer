@@ -1,19 +1,22 @@
 package provider
 
-import "github.com/eldada/metrics-viewer/models"
+import (
+	"github.com/eldada/metrics-viewer/models"
+	"time"
+)
 
-func newMetricsCache(conf Config) *metricsCache {
-	return &metricsCache{
-		conf: conf,
+func NewMetricsCache(timeWindow time.Duration) *MetricsCache {
+	return &MetricsCache{
+		timeWindow: timeWindow,
 	}
 }
 
-type metricsCache struct {
-	conf              Config
+type MetricsCache struct {
+	timeWindow        time.Duration
 	metricsCollection []models.Metrics
 }
 
-func (m *metricsCache) Add(metricsCollection []models.Metrics) []models.Metrics {
+func (m *MetricsCache) Add(metricsCollection []models.Metrics) []models.Metrics {
 	metricsMap := make(map[string]models.Metrics, len(metricsCollection))
 	for _, m := range metricsCollection {
 		metricsMap[m.Name] = m
@@ -30,9 +33,23 @@ func (m *metricsCache) Add(metricsCollection []models.Metrics) []models.Metrics 
 	for _, m := range metricsMap {
 		newCollection = append(newCollection, m)
 	}
-	newCollection = filterByTimeWindow(newCollection, m.conf.TimeWindow())
-	newCollection = aggregateByLabels(m.conf, newCollection)
-	newCollection = filterByRegex(newCollection, m.conf.Filter())
+	newCollection = filterByTimeWindow(newCollection, m.timeWindow)
 	m.metricsCollection = newCollection
+	return newCollection
+}
+
+func filterByTimeWindow(metricsCollection []models.Metrics, window time.Duration) []models.Metrics {
+	startFrom := now().UTC().Add(window * time.Duration(-1))
+	var newCollection []models.Metrics
+	for _, metrics := range metricsCollection {
+		var filtered []models.Metric
+		for _, metric := range metrics.Metrics {
+			if metric.Timestamp.After(startFrom) {
+				filtered = append(filtered, metric)
+			}
+		}
+		metrics.Metrics = filtered
+		newCollection = append(newCollection, metrics)
+	}
 	return newCollection
 }
