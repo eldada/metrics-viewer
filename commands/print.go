@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/printer"
+	"github.com/eldada/metrics-viewer/provider"
 	"github.com/jfrog/jfrog-cli-core/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"io"
@@ -75,8 +77,12 @@ func printCmd(c *components.Context) error {
 	if err != nil {
 		return err
 	}
+	shouldPrintEntry := getFilterFunc(conf)
+
 	for entry := range fetcher.Entries() {
-		_ = p.Print(entry)
+		if shouldPrintEntry(entry) {
+			_ = p.Print(entry)
+		}
 	}
 
 	return nil
@@ -105,4 +111,27 @@ func parsePrintCmdConfig(c *components.Context) (*printConfiguration, error) {
 	conf.metrics = strings.Split(flagValue, ",")
 
 	return &conf, nil
+}
+
+func getFilterFunc(conf printer.Config) func(entry string) bool {
+	filter := conf.Filter()
+	if filter == nil {
+		return func(entry string) bool {
+			return true
+		}
+	}
+	mapMetrics := provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), "|")
+	return func(entry string) bool {
+		metrics, err := parser.ParseMetrics(strings.NewReader(entry))
+		if err != nil {
+			return false
+		}
+		metrics = mapMetrics(metrics)
+		for _, m := range metrics {
+			if filter.MatchString(m.Name) {
+				return true
+			}
+		}
+		return false
+	}
 }
