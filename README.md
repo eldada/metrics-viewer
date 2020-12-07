@@ -95,3 +95,8 @@ Once running, the viewer will show 3 main sections
 
 ## Release Notes
 The release notes are available [here](RELEASE.md).
+
+## Contributions
+A big **THANK YOU** to the **real** developers here for joining me for this idea!
+- [yinonavraham](https://github.com/yinonavraham)
+- [noamshemesh](https://github.com/noamshemesh)
