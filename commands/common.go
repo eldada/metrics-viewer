@@ -195,7 +195,6 @@ func parseCommonConfig(c *components.Context) (*commonConfiguration, error) {
 	}
 	conf.interval = time.Duration(intValue) * time.Second
 
-	conf.filter = regexp.MustCompile(".*")
 	flagValue = c.GetStringFlagValue("filter")
 	if flagValue != "" {
 		conf.filter, err = regexp.Compile(flagValue)

@@ -112,12 +112,13 @@ func (p graphMetricsProvider) Get() ([]models.Metrics, error) {
 		return nil, err
 	}
 	newCollection := p.mapMetrics(metricsCollection)
+	filteredCollection := make([]models.Metrics, 0)
 	for _, metrics := range newCollection {
 		if !p.shouldKeepMetrics(metrics) {
 			continue
 		}
-		newCollection = append(newCollection, metrics)
+		filteredCollection = append(filteredCollection, metrics)
 	}
-	newCollection = p.cachedMetrics.Add(newCollection)
+	newCollection = p.cachedMetrics.Add(filteredCollection)
 	return newCollection, nil
 }

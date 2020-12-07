@@ -57,7 +57,7 @@ type MetricsFilterFunc func(metrics models.Metrics) bool
 
 func NewRegexMetricsFilter(regex *regexp.Regexp) MetricsFilterFunc {
 	return func(metrics models.Metrics) bool {
-		return regex.MatchString(metrics.Name)
+		return regex == nil || regex.MatchString(metrics.Name)
 	}
 }
 
