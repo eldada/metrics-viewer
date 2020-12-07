@@ -28,7 +28,7 @@ func getGraphFlags() []components.Flag {
 		getCommonFlags(),
 		components.StringFlag{
 			Name:         "time",
-			Description:  "time window to show in seconds",
+			Description:  "Time window to show in seconds",
 			DefaultValue: "300",
 		},
 	)

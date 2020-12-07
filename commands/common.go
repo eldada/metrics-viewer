@@ -14,32 +14,32 @@ import (
 
 var FileFlag = components.StringFlag{
 	Name:        "file",
-	Description: "log file with the open metrics format",
+	Description: "Log file with the open metrics format",
 }
 
 var UrlFlag = components.StringFlag{
 	Name:        "url",
-	Description: "url endpoint to use to get metrics",
+	Description: "Url endpoint to use to get metrics",
 }
 
 var UserFlag = components.StringFlag{
 	Name:        "user",
-	Description: "username for url requiring authentication (see --password)",
+	Description: "Username for url requiring authentication (see --password)",
 }
 
 var PasswordFlag = components.StringFlag{
 	Name:        "password",
-	Description: "password for url requiring authentication (see --user)",
+	Description: "Password for url requiring authentication (see --user)",
 }
 
 var TokenFlag = components.StringFlag{
 	Name:        "token",
-	Description: "access token for url requiring authentication",
+	Description: "Access token for url requiring authentication",
 }
 
 var ArtifactoryFlag = components.BoolFlag{
 	Name:         "artifactory",
-	Description:  "call Artifactory to get the metrics",
+	Description:  "Call currently configured Artifactory (from jfrog cli) to get the metrics",
 	DefaultValue: false,
 }
 
@@ -50,18 +50,18 @@ var ServerFlag = components.StringFlag{
 
 var IntervalFlag = components.StringFlag{
 	Name:         "interval",
-	Description:  "scraping interval in seconds",
+	Description:  "Scraping interval in seconds",
 	DefaultValue: "5",
 }
 
 var FilterFlag = components.StringFlag{
 	Name:        "filter",
-	Description: "regular expression to use for filtering the metrics",
+	Description: "Regular expression to use for filtering the metrics",
 }
 
 var AggregateIgnoreLabelsFlag = components.StringFlag{
 	Name:         "aggregate-ignore-labels",
-	Description:  "comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels.",
+	Description:  "Comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels.",
 	DefaultValue: "start,end,status",
 }
 
