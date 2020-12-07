@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 )
 
 type OutputFormat string
@@ -61,9 +62,14 @@ type csvPrinter struct {
 	writer          io.Writer
 	metrics         map[string]int
 	mapMetrics      provider.MetricsMapperFunc
+	record          *csvRecord
+	recordTimer     *time.Timer
+	mu              sync.Mutex
 }
 
 func (p *csvPrinter) Print(entry string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.printHeaderOnce.Do(p.printHeader)
 	metricsCollection, err := parser.ParseMetrics(strings.NewReader(entry))
 	if err != nil {
@@ -76,15 +82,28 @@ func (p *csvPrinter) Print(entry string) error {
 			continue
 		}
 		for _, m := range metrics.Metrics {
-			fmt.Fprintf(p.writer, "%s", m.Timestamp.UTC().Format("2006-01-02T15:04:05.000"))
-			for j := 0; j < i; j++ {
-				fmt.Fprint(p.writer, ",")
+			if p.recordTimer != nil {
+				p.recordTimer.Stop()
+				p.recordTimer = nil
 			}
-			fmt.Fprintf(p.writer, ",%f", m.Value)
-			for j := i + 1; j < len(p.metrics); j++ {
-				fmt.Fprint(p.writer, ",")
+			if p.record != nil && (p.record.ts != m.Timestamp || p.record.IsFull() || p.record.values[i] != nil) {
+				p.record.Print(p.writer)
+				fmt.Fprintln(p.writer)
+				p.record = nil
 			}
-			fmt.Fprintln(p.writer)
+			if p.record == nil {
+				p.record = &csvRecord{
+					ts:     m.Timestamp,
+					values: make([]*float64, len(p.metrics)),
+				}
+			}
+			p.record.values[i] = &m.Value
+			p.recordTimer = time.AfterFunc(50*time.Millisecond, func() {
+				r := p.record
+				p.record = nil
+				r.Print(p.writer)
+				fmt.Fprintln(p.writer)
+			})
 		}
 	}
 	return nil
@@ -100,4 +119,29 @@ func (p *csvPrinter) printHeader() {
 		_, _ = fmt.Fprintf(p.writer, ",%s", m)
 	}
 	_, _ = fmt.Fprintln(p.writer)
+}
+
+type csvRecord struct {
+	ts     time.Time
+	values []*float64
+}
+
+func (r csvRecord) Print(w io.Writer) {
+	fmt.Fprintf(w, "%s", r.ts.UTC().Format("2006-01-02T15:04:05.000"))
+	for _, v := range r.values {
+		if v != nil {
+			fmt.Fprintf(w, ",%f", *v)
+		} else {
+			fmt.Fprint(w, ",")
+		}
+	}
+}
+
+func (r csvRecord) IsFull() bool {
+	for _, v := range r.values {
+		if v == nil {
+			return false
+		}
+	}
+	return true
 }
