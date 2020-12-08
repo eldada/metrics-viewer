@@ -29,12 +29,12 @@ func getPrintFlags() []components.Flag {
 		getCommonFlags(),
 		components.StringFlag{
 			Name:         "format",
-			Description:  "format in which to print the metrics (available: open-metrics, csv)",
+			Description:  "Format in which to print the metrics (available: open-metrics, csv)",
 			DefaultValue: "open-metrics",
 		},
 		components.StringFlag{
 			Name:        "metrics",
-			Description: "comma separated list of metrics to collect. This is required when the output format is csv",
+			Description: "Comma separated list of metrics to collect. This is required when the output format is csv",
 		},
 	)
 }

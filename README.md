@@ -28,64 +28,62 @@ Uninstalling a plugin
 jfrog plugin uninstall metrics-viewer
 ```
 
-## Usage
-### Commands
-* `metrics-viewer <commnd> [options]`
-    - Commands:
-    ```
-    graph | g      : Open the metrics terminal graph viewer 
-    print | p      : CSV formatted printout of selected metrics
-    ```
-    - Options:
-    ```
-    --file           <log-file>      : Log file with the open metrics format
-    --url            <url>           : The url endpoint to get metrics
-    --user           <username>      : Username for url requiring authentication
-    --password       <password>      : Password for url requiring authentication
-    --token          <token>         : Access token for url requiring authentication
-    --artifactory    <true>          : Use current Artifactory (configured by jfrog cli with `jfrog rt c`)
-    --server         <server-id>     : Select a particular server from the configured servers by jfrog cli (used only if `--artifactory true` is set) 
-    --interval       <seconds>       : Scraping interval (default: 5)
-    --filter         <regex>         : Regular expression to use for filtering the metrics to show
-    --time           <seconds>       : Time window to show
-    --metrics        <metrics>       : CSV (Comma delimited) list of metrics to show in the `print` command
-    --aggregate-ignore-labels <list> : Comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels
-    ```
-    - Examples:
-    ```shell
-    # Use with direct Artifactory metrics API URL
-    ./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
-    
-    # Use with preconfigured Artifactory (will show Artifactory metrics)
-    ./metrics-viewer graph --artifactory
+## Artifactory Metrics
+You can view [Artifactory Metrics](https://www.jfrog.com/confluence/display/JFROG/Open+Metrics) in various ways.
+To try it out, you can run Artifactory as Docker container.
 
-    # Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
-    ./metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
-
-    # Print selected Artifactory metrics as CSV to STDOUT
-    ./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
-          --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
-    ```
-
-### Artifactory Metrics
-You can run a local Docker container of Artifactory to test or demo this plugin.
- 
-* Start Artifactory in Docker and enable its metrics
+* Start Artifactory as Docker container and enable its metrics
 ```shell
 docker run --rm -d --name artifactory \
     -p 8082:8082 \
     -e JF_ARTIFACTORY_METRICS_ENABLED=true \
     -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintray.io/jfrog/artifactory-oss
 ```
-* Once Artifactory is up, you can see the metrics log file or [api endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
+* Once Artifactory is up, you can see the metrics log file or [REST API endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
 ```shell
+# See the metrics log files
+cat artifactory/log/artifactory-metrics.log
+cat artifactory/log/metadata-metrics.log
+
 # Get the metrics from Artifactory REST API
 curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
-
-# Use with direct Artifactory metrics API URL
-./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
-
 ```
+
+## Usage
+### Commands
+The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
+* `metrics-viewer <commnd> [options]`
+    - **Commands**: See available commands by just running the binary
+    ```shell
+    ./metrics-viewer
+    ./metrics-viewer help
+    ```
+    - **Options**: To see available options for each command, call it with the help
+    ```shell
+    ./metrics-viewer help graph 
+    ./metrics-viewer help print 
+    ```
+    - **Examples**
+    ```shell
+    # Use with preconfigured Artifactory (will show Artifactory metrics)
+    ./metrics-viewer graph --artifactory
+
+    # Use with direct Artifactory metrics API URL
+    ./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
+    
+    # Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
+    ./metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
+
+    # Print metrics with preconfigured Artifactory (will show Artifactory metrics)
+    ./metrics-viewer print --artifactory
+
+    # Print metrics with preconfigured Artifactory with name matching the "app_" filter
+    ./metrics-viewer print --artifactory --filter 'app_.*'
+
+    # Print selected Artifactory metrics as CSV
+    ./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
+        --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
+    ```
 
 ### The Viewer
 Once running, the viewer will show 3 main sections
