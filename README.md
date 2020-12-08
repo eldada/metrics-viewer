@@ -54,7 +54,7 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 - **Usage**
 ```shell
-metrics-viewer <commnd> [options]
+metrics-viewer <command> [options]
 ```  
 - **Commands**: See available commands by just running the binary
 ```shell
