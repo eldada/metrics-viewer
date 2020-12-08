@@ -29,20 +29,25 @@ func getPrintFlags() []components.Flag {
 		getCommonFlags(),
 		components.StringFlag{
 			Name:         "format",
-			Description:  "format in which to print the metrics (available: open-metrics, csv)",
+			Description:  "Format in which to print the metrics (available: open-metrics, csv)",
 			DefaultValue: "open-metrics",
 		},
 		components.StringFlag{
 			Name:        "metrics",
-			Description: "comma separated list of metrics to collect. This is required when the output format is csv",
+			Description: "Comma separated list of metrics to collect. This is required when the output format is csv",
+		},
+		components.BoolFlag{
+			Name:        "no-header",
+			Description: "Indicate whether to print the header line when the output format is csv",
 		},
 	)
 }
 
 type printConfiguration struct {
 	commonConfiguration
-	format  printer.OutputFormat
-	metrics []string
+	format   printer.OutputFormat
+	metrics  []string
+	noHeader bool
 }
 
 func (c printConfiguration) Format() printer.OutputFormat {
@@ -55,6 +60,10 @@ func (c printConfiguration) Metrics() []string {
 
 func (c printConfiguration) Writer() io.Writer {
 	return os.Stdout
+}
+
+func (c printConfiguration) NoHeader() bool {
+	return c.noHeader
 }
 
 func (c printConfiguration) String() string {
@@ -109,6 +118,8 @@ func parsePrintCmdConfig(c *components.Context) (*printConfiguration, error) {
 		return nil, fmt.Errorf("--metrics is required when output format is csv")
 	}
 	conf.metrics = strings.Split(flagValue, ",")
+
+	conf.noHeader = c.GetBoolFlagValue("no-header")
 
 	return &conf, nil
 }

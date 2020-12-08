@@ -22,6 +22,7 @@ type Config interface {
 	Format() OutputFormat
 	Writer() io.Writer
 	Metrics() []string
+	NoHeader() bool
 }
 
 func NewFetcher(conf Config) (MetricEntryFetcher, error) {
