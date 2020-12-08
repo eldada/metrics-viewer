@@ -12,7 +12,16 @@ To build the **metrics-viewer** binary
 go build .
 ```
 
-## Installation with JFrog CLI
+## Installation local binary with JFrog CLI
+Since this plugin is currently not included in [JFrog CLI Plugins Registry](https://github.com/jfrog/jfrog-cli-plugins-reg), it needs to be built and installed manually. Follow these steps to install and use this plugin with JFrog CLI.
+1. Make sure JFrog CLI is installed on you machine by running ```jfrog```. If it is not installed, [install](https://jfrog.com/getcli/) it.
+2. Create a directory named ```plugins``` under ```~/.jfrog/``` if it does not exist already.
+3. Clone this repository.
+4. CD into the root directory of the cloned project.
+5. Run ```go build``` to create the binary in the current directory.
+6. Copy the binary into the ```~/.jfrog/plugins``` directory.
+
+## Installation with JFrog CLI (when plugin is in the JFrog CLI Plugins Registry)
 Installing the latest version:
 ```shell
 jfrog plugin install metrics-viewer
