@@ -130,7 +130,7 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 	if callArtifactory {
 		countInputFlags++
 	}
-	if countInputFlags == 0 && os.Getenv("MOCK_METRICS_DATA") == "" {
+	if countInputFlags == 0 {
 		return nil, fmt.Errorf("one flag is required: --file | --url | --artifactory")
 	}
 	if countInputFlags > 1 {

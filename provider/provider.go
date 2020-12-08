@@ -3,7 +3,6 @@ package provider
 import (
 	"fmt"
 	"github.com/eldada/metrics-viewer/models"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -24,9 +23,6 @@ type Config interface {
 }
 
 func New(c Config) (Provider, error) {
-	if os.Getenv("MOCK_METRICS_DATA") == "true" {
-		return newMockDataProvider(c)
-	}
 	if c.File() != "" {
 		return newFileProvider(c)
 	}
