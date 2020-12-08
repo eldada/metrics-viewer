@@ -1,6 +1,7 @@
 package printer
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/provider"
@@ -51,15 +52,15 @@ func newCSVPrinter(conf Config) *csvPrinter {
 		metrics[m] = i
 	}
 	return &csvPrinter{
-		writer:     conf.Writer(),
+		writer:     csv.NewWriter(conf.Writer()),
 		metrics:    metrics,
-		mapMetrics: provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), "|"),
+		mapMetrics: provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), ","),
 		noHeader:   conf.NoHeader(),
 	}
 }
 
 type csvPrinter struct {
-	writer     io.Writer
+	writer     *csv.Writer
 	metrics    map[string]int
 	mapMetrics provider.MetricsMapperFunc
 	noHeader   bool
@@ -91,7 +92,7 @@ func (p *csvPrinter) Print(entry string) error {
 			}
 			if p.record != nil && (p.record.ts != m.Timestamp || p.record.IsFull() || p.record.values[i] != nil) {
 				p.record.Print(p.writer)
-				fmt.Fprintln(p.writer)
+				p.writer.Flush()
 				p.record = nil
 			}
 			if p.record == nil {
@@ -105,7 +106,7 @@ func (p *csvPrinter) Print(entry string) error {
 				r := p.record
 				p.record = nil
 				r.Print(p.writer)
-				fmt.Fprintln(p.writer)
+				p.writer.Flush()
 			})
 		}
 	}
@@ -116,15 +117,12 @@ func (p *csvPrinter) printHeader() {
 	if p.noHeader {
 		return
 	}
-	_, _ = fmt.Fprint(p.writer, "timestamp")
-	metrics := make([]string, len(p.metrics))
+	header := make([]string, len(p.metrics)+1)
+	header[0] = "timestamp"
 	for m, i := range p.metrics {
-		metrics[i] = m
+		header[i+1] = m
 	}
-	for _, m := range metrics {
-		_, _ = fmt.Fprintf(p.writer, ",%s", m)
-	}
-	_, _ = fmt.Fprintln(p.writer)
+	p.writer.Write(header)
 }
 
 type csvRecord struct {
@@ -132,15 +130,16 @@ type csvRecord struct {
 	values []*float64
 }
 
-func (r csvRecord) Print(w io.Writer) {
-	fmt.Fprintf(w, "%s", r.ts.UTC().Format("2006-01-02T15:04:05.000"))
-	for _, v := range r.values {
+func (r csvRecord) Print(w *csv.Writer) {
+	record := make([]string, len(r.values)+1)
+	record[0] = fmt.Sprintf("%s", r.ts.UTC().Format("2006-01-02T15:04:05.000"))
+	for i, v := range r.values {
+		record[i+1] = ""
 		if v != nil {
-			fmt.Fprintf(w, ",%f", *v)
-		} else {
-			fmt.Fprint(w, ",")
+			record[i+1] = fmt.Sprintf("%f", *v)
 		}
 	}
+	w.Write(record)
 }
 
 func (r csvRecord) IsFull() bool {

@@ -117,7 +117,7 @@ func parsePrintCmdConfig(c *components.Context) (*printConfiguration, error) {
 	if flagValue == "" && conf.format == printer.CSVFormat {
 		return nil, fmt.Errorf("--metrics is required when output format is csv")
 	}
-	conf.metrics = strings.Split(flagValue, ",")
+	conf.metrics = splitCommaSeparatedMetricsNames(flagValue)
 
 	conf.noHeader = c.GetBoolFlagValue("no-header")
 
@@ -131,7 +131,7 @@ func getFilterFunc(conf printer.Config) func(entry string) bool {
 			return true
 		}
 	}
-	mapMetrics := provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), "|")
+	mapMetrics := provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), ",")
 	return func(entry string) bool {
 		metrics, err := parser.ParseMetrics(strings.NewReader(entry))
 		if err != nil {
@@ -145,4 +145,36 @@ func getFilterFunc(conf printer.Config) func(entry string) bool {
 		}
 		return false
 	}
+}
+
+func splitCommaSeparatedMetricsNames(s string) []string {
+	if !strings.Contains(s, "{") {
+		return strings.Split(s, ",")
+	}
+	values := make([]string, 0)
+	value := strings.Builder{}
+	betweenBrackets := false
+	for _, c := range s {
+		switch c {
+		case '{':
+			value.WriteRune(c)
+			betweenBrackets = true
+		case '}':
+			value.WriteRune(c)
+			betweenBrackets = false
+		case ',':
+			if betweenBrackets {
+				value.WriteRune(c)
+			} else {
+				values = append(values, value.String())
+				value.Reset()
+			}
+		default:
+			value.WriteRune(c)
+		}
+	}
+	if value.Len() > 0 {
+		values = append(values, value.String())
+	}
+	return values
 }
