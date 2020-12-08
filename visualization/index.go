@@ -64,7 +64,7 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
 	i.grid = tview.NewGrid().
 		SetRows(3, 0).
-		SetColumns(30, 0, 50).
+		SetColumns(40, 0, 50).
 		SetBorders(true).
 		SetBordersColor(tcell.ColorDarkSeaGreen).
 		AddItem(i.header, 0, 0, 1, 3, 0, 0, false)

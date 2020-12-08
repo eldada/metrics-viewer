@@ -1,6 +1,10 @@
 # JFrog CLI metrics-viewer Plugin
 A plugin or standalone binary to show [open-metrics](https://openmetrics.io/) formatted data in a terminal based graph.
+
+- JFrog Artifactory
 ![The Metrics Viewer Graph - single metric](images/metrics-viewer-graph.png)
+
+- JFrog Metadata (multiple metrics)
 ![The Metrics Viewer Graph - multiple metrics](images/metrics-viewer-graph-multiple.png)
 
 ## About this plugin
@@ -9,7 +13,7 @@ This JFrog CLI plugin is for viewing JFrog products metrics in real time in a te
 ## Building from source
 To build the **metrics-viewer** binary
 ```shell
-go build .
+go build
 ```
 
 ## Building a Docker image
@@ -19,7 +23,7 @@ To build the **metrics-viewer** into a Docker image and use it
 docker build -t metrics-viewer:0.1 .
 
 # Test the Docker image
-docker run --rm --name metrics-viewer metrics-viewer:0.1 --version
+docker run --rm metrics-viewer:0.1 --version
 ```
 
 ## Installation of local binary with JFrog CLI
