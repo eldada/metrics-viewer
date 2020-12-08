@@ -23,7 +23,6 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 	}
 	br := bytes.NewReader(data)
 	prometheusMetrics, err := txtParser.TextToMetricFamilies(br)
-	// TODO Instead of removing all comments - read metrics one by one, including the attached comments
 	// Handle parsing errors due to bad comments, such as "second HELP line for metric"
 	if err != nil {
 		originalErr := err
@@ -68,11 +67,11 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		}
 		for _, promMetric := range metricFamily.Metric {
 			metric := models.Metric{}
-			if promMetric.TimestampMs == nil {
-				log.Warn(fmt.Sprintf("metric %s has an entry with no timestamp; skipped.", key))
-				continue
+			if promMetric.TimestampMs != nil {
+				metric.Timestamp = time.Unix(0, promMetric.GetTimestampMs()*int64(1000000))
+			} else {
+				metric.Timestamp = time.Now()
 			}
-			metric.Timestamp = time.Unix(0, promMetric.GetTimestampMs()*int64(1000000))
 			metric.Labels = convertLabels(promMetric.Label)
 			switch *metricFamily.Type {
 			case io_prometheus_client.MetricType_COUNTER:

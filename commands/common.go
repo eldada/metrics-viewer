@@ -113,7 +113,7 @@ func (c commonConfiguration) String() string {
 		c.file, c.urlMetricsFetcher, c.interval, c.filter.String())
 }
 
-func parseCommonConfig(c *components.Context) (*commonConfiguration, error) {
+func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 	conf := commonConfiguration{
 		file: c.GetStringFlagValue("file"),
 	}
@@ -210,4 +210,9 @@ func parseCommonConfig(c *components.Context) (*commonConfiguration, error) {
 	}
 
 	return &conf, nil
+}
+
+type cliContext interface {
+	GetStringFlagValue(flagName string) string
+	GetBoolFlagValue(flagName string) bool
 }

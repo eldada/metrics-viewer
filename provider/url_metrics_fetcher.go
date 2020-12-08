@@ -70,6 +70,9 @@ type urlMetricsFetcher struct {
 }
 
 func (f urlMetricsFetcher) String() string {
+	if f.authenticator == nil {
+		return fmt.Sprintf("url: %s", f.url)
+	}
 	return fmt.Sprintf("url: %s, auth-by-%s", f.url, f.authenticator)
 }
 
