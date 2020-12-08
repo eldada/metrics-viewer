@@ -52,38 +52,42 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 ## Usage
 ### Commands
 The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
-* `metrics-viewer <commnd> [options]`
-    - **Commands**: See available commands by just running the binary
-    ```shell
-    ./metrics-viewer
-    ./metrics-viewer help
-    ```
-    - **Options**: To see available options for each command, call it with the help
-    ```shell
-    ./metrics-viewer help graph 
-    ./metrics-viewer help print 
-    ```
-    - **Examples**
-    ```shell
-    # Use with preconfigured Artifactory (will show Artifactory metrics)
-    ./metrics-viewer graph --artifactory
+- **Usage**
+```shell
+metrics-viewer <commnd> [options]
+```  
+- **Commands**: See available commands by just running the binary
+```shell
+./metrics-viewer
+./metrics-viewer help
+```
+- **Options**: To see available options for each command, call it with the help
+```shell
+./metrics-viewer help graph 
+./metrics-viewer help print 
+```
 
-    # Use with direct Artifactory metrics API URL
-    ./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
-    
-    # Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
-    ./metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
+### Examples
+```shell
+# Use with preconfigured Artifactory (will show Artifactory metrics)
+./metrics-viewer graph --artifactory
 
-    # Print metrics with preconfigured Artifactory (will show Artifactory metrics)
-    ./metrics-viewer print --artifactory
+# Use with direct Artifactory metrics API URL
+./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
 
-    # Print metrics with preconfigured Artifactory with name matching the "app_" filter
-    ./metrics-viewer print --artifactory --filter 'app_.*'
+# Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
+./metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
 
-    # Print selected Artifactory metrics as CSV
-    ./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
-        --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
-    ```
+# Print metrics with preconfigured Artifactory (will show Artifactory metrics)
+./metrics-viewer print --artifactory
+
+# Print metrics with preconfigured Artifactory with name matching the "app_" filter
+./metrics-viewer print --artifactory --filter 'app_.*'
+
+# Print selected Artifactory metrics as CSV
+./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
+    --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
+```
 
 ### The Viewer
 Once running, the viewer will show 3 main sections
