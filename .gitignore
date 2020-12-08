@@ -6,6 +6,7 @@
 # Test files
 tmp
 out
+artifactory
 
 # executable
 metrics-viewer
