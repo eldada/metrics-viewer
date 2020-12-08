@@ -22,7 +22,7 @@ docker build -t metrics-viewer:0.1 .
 docker run --rm --name metrics-viewer metrics-viewer:0.1 --version
 ```
 
-## Installation local binary with JFrog CLI
+## Installation of local binary with JFrog CLI
 Since this plugin is currently not included in [JFrog CLI Plugins Registry](https://github.com/jfrog/jfrog-cli-plugins-reg), it needs to be built and installed manually. Follow these steps to install and use this plugin with JFrog CLI.
 1. Make sure JFrog CLI is installed on you machine by running ```jfrog```. If it is not installed, [install](https://jfrog.com/getcli/) it.
 2. Create a directory named ```plugins``` under ```~/.jfrog/``` if it does not exist already.
