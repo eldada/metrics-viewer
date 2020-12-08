@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"reflect"
@@ -158,7 +158,7 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				},
 			},
 			expectedFields: &fields{
-				rightPane: tview.NewTextView().SetText("[green][green]hello_abc[-]\n[green]No description[-]\n[green]Max: 1[-]\n[green]Current: 1[-]\n[-]"),
+				rightPane: tview.NewTextView().SetText("[green][green]hello_abc[-]\n[green]No description[-]\n[green]Max: 1.000000[-]\n[green]Current: 1.000000[-]\n[-]"),
 			},
 		},
 		{
