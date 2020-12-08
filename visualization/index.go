@@ -295,8 +295,8 @@ func (i *index) selectedToList() (string, []models.Metrics) {
 			desc = "No description"
 		}
 		summaryToAdd += fmt.Sprintf("%s%s[-]\n", colors[selectedIndex], desc)
-		summaryToAdd += fmt.Sprintf("%sMax: %v[-]\n", colors[selectedIndex], findMaxMetricValue(item.Metrics))
-		summaryToAdd += fmt.Sprintf("%sCurrent: %v[-]\n", colors[selectedIndex], findCurrentMetricValue(item.Metrics))
+		summaryToAdd += fmt.Sprintf("%sMax: %f[-]\n", colors[selectedIndex], findMaxMetricValue(item.Metrics))
+		summaryToAdd += fmt.Sprintf("%sCurrent: %f[-]\n", colors[selectedIndex], findCurrentMetricValue(item.Metrics))
 		selectedSummary = append(selectedSummary, fmt.Sprintf("%s%s[-]", colors[selectedIndex], summaryToAdd))
 	}
 
