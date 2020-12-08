@@ -97,7 +97,7 @@ func printCmd(c *components.Context) error {
 	return nil
 }
 
-func parsePrintCmdConfig(c *components.Context) (*printConfiguration, error) {
+func parsePrintCmdConfig(c cliContext) (*printConfiguration, error) {
 	commonConfig, err := parseCommonConfig(c)
 	if err != nil {
 		return nil, err
@@ -148,6 +148,9 @@ func getFilterFunc(conf printer.Config) func(entry string) bool {
 }
 
 func splitCommaSeparatedMetricsNames(s string) []string {
+	if s == "" {
+		return nil
+	}
 	if !strings.Contains(s, "{") {
 		return strings.Split(s, ",")
 	}

@@ -64,7 +64,7 @@ func graphCmd(c *components.Context) error {
 	return nil
 }
 
-func parseGraphCmdConfig(c *components.Context) (*graphConfiguration, error) {
+func parseGraphCmdConfig(c cliContext) (*graphConfiguration, error) {
 	commonConfig, err := parseCommonConfig(c)
 	if err != nil {
 		return nil, err

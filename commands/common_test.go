@@ -13,12 +13,22 @@ import (
 )
 
 func Test_parseCommonConfig(t *testing.T) {
+	testParseCommonConfig(t, cliContextMock{}, func(ctx cliContext) (commonConfig, error) {
+		return parseCommonConfig(ctx)
+	})
+}
+
+func testParseCommonConfig(t *testing.T, defaultCliCtx cliContextMock, parse func(ctx cliContext) (commonConfig, error)) {
+	if defaultCliCtx.stringFlags == nil {
+		defaultCliCtx.stringFlags = make(map[string]string, 1)
+	}
+	defaultCliCtx.stringFlags["interval"] = "5"
 	testFilepath := path.Join(t.TempDir(), "foo")
 	require.NoError(t, ioutil.WriteFile(testFilepath, []byte("hello"), 0777))
 	tests := []struct {
 		name    string
 		cliCtx  cliContextMock
-		want    commonConfiguration
+		want    commonConfig
 		wantUrl string
 		wantErr string
 	}{
@@ -179,9 +189,8 @@ func Test_parseCommonConfig(t *testing.T) {
 			name: "filter",
 			cliCtx: cliContextMock{
 				stringFlags: map[string]string{
-					"url":      "foo",
-					"interval": "5",
-					"filter":   "foo.*",
+					"url":    "foo",
+					"filter": "foo.*",
 				},
 			},
 			want: commonConfiguration{
@@ -195,9 +204,8 @@ func Test_parseCommonConfig(t *testing.T) {
 			name: "filter with bad regex",
 			cliCtx: cliContextMock{
 				stringFlags: map[string]string{
-					"url":      "foo",
-					"interval": "5",
-					"filter":   "(",
+					"url":    "foo",
+					"filter": "(",
 				},
 			},
 			wantErr: "invalid filter expression; cause: error parsing regexp: missing closing ): `(`",
@@ -207,7 +215,6 @@ func Test_parseCommonConfig(t *testing.T) {
 			cliCtx: cliContextMock{
 				stringFlags: map[string]string{
 					"url":                     "foo",
-					"interval":                "5",
 					"aggregate-ignore-labels": "foo,bar,baz",
 				},
 			},
@@ -224,7 +231,8 @@ func Test_parseCommonConfig(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			conf, err := parseCommonConfig(tc.cliCtx)
+			cliCtx := defaultCliCtx.OverrideWith(tc.cliCtx)
+			conf, err := parse(cliCtx)
 			if tc.wantErr != "" {
 				require.NotNil(t, err, "error")
 				assert.Equal(t, tc.wantErr, err.Error(), "error")
@@ -258,4 +266,31 @@ func (c cliContextMock) GetStringFlagValue(flagName string) string {
 
 func (c cliContextMock) GetBoolFlagValue(flagName string) bool {
 	return c.boolFlags[flagName]
+}
+
+func (c cliContextMock) OverrideWith(other cliContextMock) cliContextMock {
+	newCtx := cliContextMock{}
+	newCtx.stringFlags = make(map[string]string)
+	for k, v := range c.stringFlags {
+		newCtx.stringFlags[k] = v
+	}
+	for k, v := range other.stringFlags {
+		newCtx.stringFlags[k] = v
+	}
+	newCtx.boolFlags = make(map[string]bool)
+	for k, v := range c.boolFlags {
+		newCtx.boolFlags[k] = v
+	}
+	for k, v := range other.boolFlags {
+		newCtx.boolFlags[k] = v
+	}
+	return newCtx
+}
+
+type commonConfig interface {
+	UrlMetricsFetcher() provider.UrlMetricsFetcher
+	File() string
+	Interval() time.Duration
+	Filter() *regexp.Regexp
+	AggregateIgnoreLabels() provider.StringSet
 }
