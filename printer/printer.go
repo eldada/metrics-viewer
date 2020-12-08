@@ -54,14 +54,17 @@ func newCSVPrinter(conf Config) *csvPrinter {
 		writer:     conf.Writer(),
 		metrics:    metrics,
 		mapMetrics: provider.NewLabelsMetricsMapper(conf.AggregateIgnoreLabels(), "|"),
+		noHeader:   conf.NoHeader(),
 	}
 }
 
 type csvPrinter struct {
+	writer     io.Writer
+	metrics    map[string]int
+	mapMetrics provider.MetricsMapperFunc
+	noHeader   bool
+
 	printHeaderOnce sync.Once
-	writer          io.Writer
-	metrics         map[string]int
-	mapMetrics      provider.MetricsMapperFunc
 	record          *csvRecord
 	recordTimer     *time.Timer
 	mu              sync.Mutex
@@ -110,6 +113,9 @@ func (p *csvPrinter) Print(entry string) error {
 }
 
 func (p *csvPrinter) printHeader() {
+	if p.noHeader {
+		return
+	}
 	_, _ = fmt.Fprint(p.writer, "timestamp")
 	metrics := make([]string, len(p.metrics))
 	for m, i := range p.metrics {
