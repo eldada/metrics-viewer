@@ -64,7 +64,8 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
 	i.grid = tview.NewGrid().
 		SetRows(3, 0).
-		SetColumns(40, 0, 50).
+		SetColumns(-2, -10, -3).
+		SetMinSize(0, 30).
 		SetBorders(true).
 		SetBordersColor(tcell.ColorDarkSeaGreen).
 		AddItem(i.header, 0, 0, 1, 3, 0, 0, false)
@@ -242,7 +243,7 @@ func (i *index) findExactMatch(menu *tview.List, name string) []int {
 	candidateItems := menu.FindItems(name, ignoreSecondaryText, false, false)
 	items := make([]int, 0, len(candidateItems))
 	for _, item := range candidateItems {
-		main, _ := i.currentMenu.GetItemText(item)
+		main, _ := menu.GetItemText(item)
 
 		// Protecting vs prefix matching
 		if main == name {
