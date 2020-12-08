@@ -8,8 +8,18 @@ This JFrog CLI plugin is for viewing JFrog products metrics in real time in a te
 
 ## Building from source
 To build the **metrics-viewer** binary
-```
+```shell
 go build .
+```
+
+## Building a Docker image
+To build the **metrics-viewer** into a Docker image and use it
+```shell
+# Build the Docker image
+docker build -t metrics-viewer:0.1 .
+
+# Test the Docker image
+docker run --rm --name metrics-viewer metrics-viewer:0.1 --version
 ```
 
 ## Installation local binary with JFrog CLI
@@ -48,6 +58,7 @@ docker run --rm -d --name artifactory \
     -e JF_ARTIFACTORY_METRICS_ENABLED=true \
     -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintray.io/jfrog/artifactory-oss
 ```
+
 * Once Artifactory is up, you can see the metrics log file or [REST API endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
 ```shell
 # See the metrics log files
@@ -63,13 +74,15 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 - **Usage**
 ```shell
-metrics-viewer <command> [options]
+./metrics-viewer <command> [options]
 ```  
+
 - **Commands**: See available commands by just running the binary
 ```shell
 ./metrics-viewer
 ./metrics-viewer help
 ```
+
 - **Options**: To see available options for each command, call it with the help
 ```shell
 ./metrics-viewer help graph 
@@ -77,6 +90,7 @@ metrics-viewer <command> [options]
 ```
 
 ### Examples
+- Using the **metrics-viewer** binary
 ```shell
 # Use with preconfigured Artifactory (will show Artifactory metrics)
 ./metrics-viewer graph --artifactory
@@ -96,6 +110,20 @@ metrics-viewer <command> [options]
 # Print selected Artifactory metrics as CSV
 ./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
     --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
+```
+
+- Using the Docker image
+```shell
+# Use with direct Artifactory metrics API URL
+# NOTE: The server URL has to be accessible from within the Docker container
+docker run --rm --name metrics-viewer metrics-viewer:0.1 \
+    graph --url http://artifactory-server/artifactory/api/v1/metrics --user admin --password password
+
+# Print specific metrics as CSV
+# NOTE: The Docker container needs to access the file system for the logs, so need to mount it into the container 
+docker run --rm --name metrics-viewer -v $(pwd)/artifactory:/artifactory metrics-viewer:0.1 \
+    print --file /artifactory/log/artifactory-metrics.log \
+    --format csv --metrics jfrt_runtime_heap_freememory_bytes,jfrt_runtime_heap_totalmemory_bytes
 ```
 
 ### The Viewer
