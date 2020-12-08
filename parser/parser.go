@@ -55,7 +55,7 @@ func ParseMetrics(r io.Reader) ([]models.Metrics, error) {
 		case io_prometheus_client.MetricType_COUNTER:
 		case io_prometheus_client.MetricType_UNTYPED:
 		default:
-			log.Warn(fmt.Sprintf("metric '%s' has unsupported type: %s", key, metricFamily.Type.String()))
+			//log.Warn(fmt.Sprintf("metric '%s' has unsupported type: %s", key, metricFamily.Type.String()))
 			continue
 		}
 		metrics := models.Metrics{
