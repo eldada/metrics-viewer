@@ -158,7 +158,7 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				},
 			},
 			expectedFields: &fields{
-				rightPane: tview.NewTextView().SetText("[green][green]hello_abc[-]\n[green]No description[-]\n[green]Max: 1.000000[-]\n[green]Current: 1.000000[-]\n[-]"),
+				rightPane: tview.NewTextView().SetText("[green][green]hello_abc[-]\n[green]No description[-]\n[green]Max: 1.000000[-]\n[green]Min: 1.000000[-]\n[green]Current: 1.000000[-]\n[-]"),
 			},
 		},
 		{
