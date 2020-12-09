@@ -16,6 +16,11 @@ To build the **metrics-viewer** binary
 go build
 ```
 
+# Testing the code
+```shell
+go test ./...
+```
+
 ## Building a Docker image
 To build the **metrics-viewer** into a Docker image and use it
 ```shell
