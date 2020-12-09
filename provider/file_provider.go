@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func newFileProvider(c Config) (*fileProvider, error) {
-	t, err := tail.TailFile(c.File(), tail.Config{
+func newFileProvider(file string, interval time.Duration) (*fileProvider, error) {
+	t, err := tail.TailFile(file, tail.Config{
 		Follow: true,
 		ReOpen: true,
 	})
@@ -18,13 +18,13 @@ func newFileProvider(c Config) (*fileProvider, error) {
 		return nil, err
 	}
 	return &fileProvider{
-		conf: c,
-		tail: t,
+		interval: interval,
+		tail:     t,
 	}, nil
 }
 
 type fileProvider struct {
-	conf          Config
+	interval      time.Duration
 	tail          *tail.Tail
 	stagedMetrics []models.Metrics
 }
@@ -36,7 +36,7 @@ func (p *fileProvider) Get() ([]models.Metrics, error) {
 	r := bytes.NewReader([]byte{})
 	b := bytes.NewBuffer([]byte{})
 	start := now()
-	maxBatchIntervalDuration := time.Duration(float64(p.conf.Interval()) * maxBatchIntervalFactor)
+	maxBatchIntervalDuration := time.Duration(float64(p.interval) * maxBatchIntervalFactor)
 	metricsCollection := p.stagedMetrics
 	noLinesCounter := 0
 	for {

@@ -24,10 +24,10 @@ type Config interface {
 
 func New(c Config) (Provider, error) {
 	if c.File() != "" {
-		return newFileProvider(c)
+		return newFileProvider(c.File(), c.Interval())
 	}
 	if c.UrlMetricsFetcher() != nil {
-		return newUrlProvider(c)
+		return newUrlProvider(c.UrlMetricsFetcher())
 	}
 	return nil, fmt.Errorf("illegal state, could not create provider - file or url are mandatory")
 }

@@ -45,5 +45,4 @@ func Test_fileFetcher(t *testing.T) {
 	expected, _ := ioutil.ReadFile("testdata/metrics1_2_3.log")
 	assert.Equal(t, string(expected), s.String())
 	assert.True(t, gofuncStopped, "iteration stopped")
-
 }

@@ -6,18 +6,18 @@ import (
 	"github.com/eldada/metrics-viewer/parser"
 )
 
-func newUrlProvider(c Config) (*urlProvider, error) {
+func newUrlProvider(metricsFetcher UrlMetricsFetcher) (*urlProvider, error) {
 	return &urlProvider{
-		conf: c,
+		metricsFetcher: metricsFetcher,
 	}, nil
 }
 
 type urlProvider struct {
-	conf Config
+	metricsFetcher UrlMetricsFetcher
 }
 
 func (p *urlProvider) Get() ([]models.Metrics, error) {
-	data, err := p.conf.UrlMetricsFetcher().Get()
+	data, err := p.metricsFetcher.Get()
 	if err != nil {
 		return nil, err
 	}
