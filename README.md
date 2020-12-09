@@ -143,7 +143,7 @@ docker run --rm --name metrics-viewer -v $(pwd)/artifactory:/artifactory metrics
 Once running, the viewer will show 3 main sections
 - Left pane: List of available metrics
 - Center pane: Graph of selected metrics
-- Right pane: Selected metrics Max and current values 
+- Right pane: Selected metrics **Max**, **Min** and **Current** values
 
 #### Keys
 - Up/Down arrow keys: Move between available metrics
