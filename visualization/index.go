@@ -67,7 +67,7 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 		SetColumns(-3, -10, -3).
 		SetMinSize(0, 30).
 		SetBorders(true).
-		SetBordersColor(tcell.ColorDarkSeaGreen).
+		SetBordersColor(tcell.ColorGreen).
 		AddItem(i.header, 0, 0, 1, 3, 0, 0, false)
 
 	i.grid.SetBackgroundColor(tcell.ColorBlack)

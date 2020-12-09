@@ -18,7 +18,11 @@ go build
 
 # Testing the code
 ```shell
+# Just run the tests
 go test ./...
+
+# Run the tests and create a coverage report
+mkdir out && go test -coverprofile=out/coverage.out ./... && go tool cover -html=out/coverage.out
 ```
 
 ## Building a Docker image
