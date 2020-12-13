@@ -68,7 +68,7 @@ To try it out, you can run Artifactory as Docker container.
 ```shell
 docker run --rm -d --name artifactory \
     -p 8082:8082 \
-    -e JF_ARTIFACTORY_METRICS_ENABLED=true \
+    -e JF_SHARED_METRICS_ENABLED=true \
     -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintray.io/jfrog/artifactory-oss
 ```
 
