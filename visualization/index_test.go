@@ -231,11 +231,9 @@ func Test_index_generateMenuReturnsListThatIsNotTheCurrentMenu(t *testing.T) {
 
 func Test_index_searchbar(t *testing.T) {
 	i := &index{
-		grid: tview.NewGrid(),
-		app:  tview.NewApplication(),
-		items: map[string]models.Metrics{
-
-		},
+		grid:  tview.NewGrid(),
+		app:   tview.NewApplication(),
+		items: map[string]models.Metrics{},
 		allItemsMenu: tview.NewList().AddItem("", "", 0, nil).
 			AddItem("Quit", "", 0, nil).
 			AddItem("ab", "", 0, nil).
