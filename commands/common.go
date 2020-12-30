@@ -44,8 +44,8 @@ var ArtifactoryFlag = components.BoolFlag{
 }
 
 var ServerFlag = components.StringFlag{
-	Name:        "server",
-	Description: "Artifactory server ID to call when --artifactory is given (uses current by default)",
+	Name:        "server-id",
+	Description: "Artifactory server ID to call when --artifactory is given (uses default if not set)",
 }
 
 var IntervalFlag = components.StringFlag{
@@ -130,11 +130,9 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 	if callArtifactory {
 		countInputFlags++
 	}
-	if countInputFlags == 0 {
-		return nil, fmt.Errorf("one flag is required: --file | --url | --artifactory")
-	}
+
 	if countInputFlags > 1 {
-		return nil, fmt.Errorf("only one flag is required: --file | --url | --artifactory")
+		return nil, fmt.Errorf("only zero or one flag is required: --file | --url | --artifactory")
 	}
 
 	if conf.file != "" {
@@ -145,8 +143,8 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 		_ = f.Close()
 	}
 
-	if callArtifactory {
-		serverId := c.GetStringFlagValue("server")
+	if callArtifactory || (countInputFlags == 0) {
+		serverId := c.GetStringFlagValue("server-id")
 		rtDetails, err := commands.GetConfig(serverId, false)
 		if err != nil {
 			msg := fmt.Sprintf("could not load configuration for Artifactory server %s", serverId)
