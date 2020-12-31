@@ -24,6 +24,7 @@ func Test_fileFetcher(t *testing.T) {
 			s.WriteString(entry)
 			lastUpdate = time.Now()
 		}
+		t.Log("Iteration stopped.")
 		gofuncStopped = true
 	}()
 	go func() {
@@ -35,14 +36,19 @@ func Test_fileFetcher(t *testing.T) {
 			fmt.Fprintln(file, string(data))
 		}
 	}()
+	durWithoutEntries := 10 * time.Millisecond
+	t.Logf("Waiting for at least %s without new entries...", durWithoutEntries)
 	for {
-		if time.Since(lastUpdate) > 10*time.Millisecond {
+		sinceLastUpdate := time.Since(lastUpdate)
+		if sinceLastUpdate > durWithoutEntries {
+			t.Log("Finished waiting.")
 			break
 		}
+		t.Logf("Last entry since %s, waiting some more...", sinceLastUpdate)
 		time.Sleep(5 * time.Millisecond)
 	}
 	f.Close()
 	expected, _ := ioutil.ReadFile("testdata/metrics1_2_3.log")
 	assert.Equal(t, string(expected), s.String())
-	assert.True(t, gofuncStopped, "iteration stopped")
+	assert.Eventually(t, func() bool { return gofuncStopped }, 100*time.Millisecond, 5*time.Millisecond, "Iteration did not stop")
 }
