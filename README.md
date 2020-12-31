@@ -105,8 +105,8 @@ The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 ### Examples
 - Using the **metrics-viewer** binary
 ```shell
-# Use with preconfigured Artifactory (will show Artifactory metrics)
-./metrics-viewer graph --artifactory
+# Use with the default Artifactory that is configured by the JFrog CLI
+./metrics-viewer graph
 
 # Use with direct Artifactory metrics API URL
 ./metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
@@ -114,11 +114,11 @@ The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 # Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
 ./metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
 
-# Print metrics with preconfigured Artifactory (will show Artifactory metrics)
-./metrics-viewer print --artifactory
+# Print metrics of the default Artifactory that is configured by the JFrog CLI
+./metrics-viewer print
 
-# Print metrics with preconfigured Artifactory with name matching the "app_" filter
-./metrics-viewer print --artifactory --filter 'app_.*'
+# Print metrics of the "art17" Artifactory with name matching the "app_" filter
+./metrics-viewer print --server-id art17 --filter 'app_.*'
 
 # Print selected Artifactory metrics as CSV
 ./metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
