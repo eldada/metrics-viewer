@@ -26,7 +26,7 @@ func Test_urlFetcher(t *testing.T) {
 		gofuncStopped = true
 	}()
 	for {
-		if time.Since(lastUpdate) > 10*time.Millisecond {
+		if time.Since(lastUpdate) > 100*time.Millisecond {
 			break
 		}
 		time.Sleep(5 * time.Millisecond)
