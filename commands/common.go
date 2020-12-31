@@ -37,15 +37,9 @@ var TokenFlag = components.StringFlag{
 	Description: "Access token for url requiring authentication",
 }
 
-var ArtifactoryFlag = components.BoolFlag{
-	Name:         "artifactory",
-	Description:  "Call currently configured Artifactory (from jfrog cli) to get the metrics",
-	DefaultValue: false,
-}
-
 var ServerFlag = components.StringFlag{
-	Name:        "server",
-	Description: "Artifactory server ID to call when --artifactory is given (uses current by default)",
+	Name:        "server-id",
+	Description: "Artifactory server ID to use from JFrog CLI configuration (use default if not set)",
 }
 
 var IntervalFlag = components.StringFlag{
@@ -72,7 +66,6 @@ func getCommonFlags() []components.Flag {
 		UserFlag,
 		PasswordFlag,
 		TokenFlag,
-		ArtifactoryFlag,
 		ServerFlag,
 		IntervalFlag,
 		FilterFlag,
@@ -118,7 +111,6 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 		file: c.GetStringFlagValue("file"),
 	}
 	url := c.GetStringFlagValue("url")
-	callArtifactory := c.GetBoolFlagValue("artifactory")
 
 	countInputFlags := 0
 	if conf.file != "" {
@@ -127,14 +119,9 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 	if url != "" {
 		countInputFlags++
 	}
-	if callArtifactory {
-		countInputFlags++
-	}
-	if countInputFlags == 0 {
-		return nil, fmt.Errorf("one flag is required: --file | --url | --artifactory")
-	}
+
 	if countInputFlags > 1 {
-		return nil, fmt.Errorf("only one flag is required: --file | --url | --artifactory")
+		return nil, fmt.Errorf("only zero or one flag is required: --file | --url")
 	}
 
 	if conf.file != "" {
@@ -145,8 +132,8 @@ func parseCommonConfig(c cliContext) (*commonConfiguration, error) {
 		_ = f.Close()
 	}
 
-	if callArtifactory {
-		serverId := c.GetStringFlagValue("server")
+	if countInputFlags == 0 {
+		serverId := c.GetStringFlagValue("server-id")
 		rtDetails, err := commands.GetConfig(serverId, false)
 		if err != nil {
 			msg := fmt.Sprintf("could not load configuration for Artifactory server %s", serverId)
