@@ -19,22 +19,32 @@ func Test_urlFetcher(t *testing.T) {
 	lastUpdate := time.Now()
 	gofuncStopped := false
 	go func() {
+		counter := 0
 		for entry := range f.Entries() {
+			counter++
+			//t.Logf("Received entry #%d, length: %d", counter, len(entry))
 			s.WriteString(entry)
 			lastUpdate = time.Now()
+			//t.Logf("Last updated at %s", lastUpdate.Format(time.RFC3339Nano))
 		}
+		t.Log("Iteration stopped.")
 		gofuncStopped = true
 	}()
+	durWithoutEntries := 10 * time.Millisecond
+	t.Logf("Waiting for at least %s without new entries...", durWithoutEntries)
 	for {
-		if time.Since(lastUpdate) > 100*time.Millisecond {
+		sinceLastUpdate := time.Since(lastUpdate)
+		if sinceLastUpdate > durWithoutEntries {
+			t.Log("Finished waiting.")
 			break
 		}
+		t.Logf("Last entry since %s, waiting some more...", sinceLastUpdate)
 		time.Sleep(5 * time.Millisecond)
 	}
 	f.Close()
 	expected, _ := ioutil.ReadFile("testdata/metrics1_2_3.log")
 	assert.Equal(t, string(expected), s.String())
-	assert.True(t, gofuncStopped, "iteration stopped")
+	assert.Eventually(t, func() bool { return gofuncStopped }, 100*time.Millisecond, 5*time.Millisecond, "Iteration did not stop")
 
 }
 
