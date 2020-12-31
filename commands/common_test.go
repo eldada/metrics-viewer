@@ -40,31 +40,7 @@ func testParseCommonConfig(t *testing.T, defaultCliCtx cliContextMock, parse fun
 					"url":  "boo",
 				},
 			},
-			wantErr: "only zero or one flag is required: --file | --url | --artifactory",
-		},
-		{
-			name: "both file and artifactory",
-			cliCtx: cliContextMock{
-				stringFlags: map[string]string{
-					"file": "foo",
-				},
-				boolFlags: map[string]bool{
-					"artifactory": true,
-				},
-			},
-			wantErr: "only zero or one flag is required: --file | --url | --artifactory",
-		},
-		{
-			name: "both url and artifactory",
-			cliCtx: cliContextMock{
-				stringFlags: map[string]string{
-					"url": "boo",
-				},
-				boolFlags: map[string]bool{
-					"artifactory": true,
-				},
-			},
-			wantErr: "only zero or one flag is required: --file | --url | --artifactory",
+			wantErr: "only zero or one flag is required: --file | --url",
 		},
 		{
 			name: "file",
