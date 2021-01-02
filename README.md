@@ -85,7 +85,24 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 ## Usage
 ### Commands
 The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
-- **Usage**
+- **Usage as JFrog CLI plugin**
+```shell
+jfrog metrics-viewer <command> [options]
+```  
+
+- **Commands**: See available commands by just running the binary
+```shell
+jfrog metrics-viewer
+jfrog metrics-viewer help
+```
+
+- **Options**: To see available options for each command, call it with the help
+```shell
+jfrog metrics-viewer help graph 
+jfrog metrics-viewer help print 
+```
+
+- **Usage as standalone binary**
 ```shell
 ./metrics-viewer <command> [options]
 ```  
@@ -102,7 +119,30 @@ The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 ./metrics-viewer help print 
 ```
 
-### Examples
+### Examples as JFrog CLI plugin
+- Using the **metrics-viewer** binary
+```shell
+# Use with the default Artifactory that is configured by the JFrog CLI
+jfrog metrics-viewer graph
+
+# Use with direct Artifactory metrics API URL
+jfrog metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
+
+# Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
+jfrog metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
+
+# Print metrics of the default Artifactory that is configured by the JFrog CLI
+jfrog metrics-viewer print
+
+# Print metrics of the "art17" Artifactory with name matching the "app_" filter
+jfrog metrics-viewer print --server-id art17 --filter 'app_.*'
+
+# Print selected Artifactory metrics as CSV
+jfrog metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
+    --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
+```
+
+### Examples as standalone binary
 - Using the **metrics-viewer** binary
 ```shell
 # Use with the default Artifactory that is configured by the JFrog CLI
