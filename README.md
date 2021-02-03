@@ -15,6 +15,11 @@ To build the **metrics-viewer** binary
 ```shell
 go build
 ```
+To build the **metrics-viewer** binary for multiple operating systems and architectures (Mac, Linux and Windows)
+```shell
+./build-binary.sh
+```
+
 
 # Testing the code
 ```shell
