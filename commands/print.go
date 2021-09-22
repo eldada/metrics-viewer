@@ -5,7 +5,7 @@ import (
 	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/printer"
 	"github.com/eldada/metrics-viewer/provider"
-	"github.com/jfrog/jfrog-cli-core/plugins/components"
+	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
 	"io"
 	"os"

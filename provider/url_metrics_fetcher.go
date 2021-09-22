@@ -3,9 +3,9 @@ package provider
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/jfrog/jfrog-cli-core/artifactory/utils"
-	"github.com/jfrog/jfrog-cli-core/utils/config"
-	"github.com/jfrog/jfrog-client-go/artifactory/httpclient"
+	"github.com/jfrog/jfrog-cli-core/v2/artifactory/utils"
+	"github.com/jfrog/jfrog-cli-core/v2/utils/config"
+	"github.com/jfrog/jfrog-client-go/http/jfroghttpclient"
 	"github.com/jfrog/jfrog-client-go/utils/io/httputils"
 	"io/ioutil"
 	"net/http"
@@ -16,8 +16,9 @@ type UrlMetricsFetcher interface {
 	Get() ([]byte, error)
 }
 
-func NewArtifactoryMetricsFetcher(rtDetails *config.ArtifactoryDetails) (*artifactoryMetricsFetcher, error) {
-	sm, err := utils.CreateServiceManager(rtDetails, false)
+func NewArtifactoryMetricsFetcher(rtDetails *config.ServerDetails) (*artifactoryMetricsFetcher, error) {
+	const useDefaultRetries = -1
+	sm, err := utils.CreateServiceManager(rtDetails, useDefaultRetries, false)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func NewArtifactoryMetricsFetcher(rtDetails *config.ArtifactoryDetails) (*artifa
 	}
 	clientDetails := authConfig.CreateHttpClientDetails()
 	return &artifactoryMetricsFetcher{
-		url:           fmt.Sprintf("%s/api/v1/metrics", strings.TrimSuffix(rtDetails.Url, "/")),
+		url:           fmt.Sprintf("%s/api/v1/metrics", strings.TrimSuffix(rtDetails.ArtifactoryUrl, "/")),
 		client:        sm.Client(),
 		clientDetails: &clientDetails,
 	}, nil
@@ -35,7 +36,7 @@ func NewArtifactoryMetricsFetcher(rtDetails *config.ArtifactoryDetails) (*artifa
 
 type artifactoryMetricsFetcher struct {
 	url           string
-	client        *httpclient.ArtifactoryHttpClient
+	client        *jfroghttpclient.JfrogHttpClient
 	clientDetails *httputils.HttpClientDetails
 }
 

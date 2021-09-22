@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/eldada/metrics-viewer/commands"
-	"github.com/jfrog/jfrog-cli-core/plugins"
-	"github.com/jfrog/jfrog-cli-core/plugins/components"
+	"github.com/jfrog/jfrog-cli-core/v2/plugins"
+	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 )
 
 func main() {
