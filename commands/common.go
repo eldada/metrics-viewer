@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 	"github.com/eldada/metrics-viewer/provider"
-	"github.com/jfrog/jfrog-cli-core/artifactory/commands"
-	"github.com/jfrog/jfrog-cli-core/plugins/components"
+	"github.com/jfrog/jfrog-cli-core/v2/common/commands"
+	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"os"
 	"regexp"
 	"strconv"
