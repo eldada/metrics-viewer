@@ -34,14 +34,16 @@ mkdir -p out && go test -coverprofile=out/coverage.out ./... && go tool cover -h
 To build the **metrics-viewer** into a Docker image and use it
 ```shell
 # Build the Docker image
-docker build -t metrics-viewer:0.1 .
+docker build -t metrics-viewer:0.2.0 .
 
 # Test the Docker image
-docker run --rm metrics-viewer:0.1 --version
+docker run --rm metrics-viewer:0.2.0 --version
 ```
 
 ## Installation of local binary with JFrog CLI
-Since this plugin is currently not included in [JFrog CLI Plugins Registry](https://github.com/jfrog/jfrog-cli-plugins-reg), it needs to be built and installed manually. Follow these steps to install and use this plugin with JFrog CLI.
+If you don't want to install the plugin from the [JFrog CLI Plugins Registry](https://github.com/jfrog/jfrog-cli-plugins-reg), it needs to be built and installed manually.<br>
+
+Follow these steps to install and use this plugin with JFrog CLI.
 1. Make sure JFrog CLI is installed on you machine by running ```jfrog```. If it is not installed, [install](https://jfrog.com/getcli/) it.
 2. Create a directory named ```plugins``` under ```~/.jfrog/``` if it does not exist already.
 3. Clone this repository.

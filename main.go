@@ -14,7 +14,7 @@ func getApp() components.App {
 	app := components.App{}
 	app.Name = "metrics-viewer"
 	app.Description = "Easily present Open Metrics data in terminal."
-	app.Version = "v0.1.0"
+	app.Version = "v0.2.0"
 	app.Commands = getCommands()
 	return app
 }
