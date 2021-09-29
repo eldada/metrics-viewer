@@ -34,10 +34,10 @@ mkdir -p out && go test -coverprofile=out/coverage.out ./... && go tool cover -h
 To build the **metrics-viewer** into a Docker image and use it
 ```shell
 # Build the Docker image
-docker build -t metrics-viewer:0.2.0 .
+docker build -t metrics-viewer:0.2.1 .
 
 # Test the Docker image
-docker run --rm metrics-viewer:0.2.0 --version
+docker run --rm metrics-viewer:0.2.1 --version
 ```
 
 ## Installation of local binary with JFrog CLI
