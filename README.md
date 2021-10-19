@@ -1,5 +1,5 @@
 # JFrog CLI metrics-viewer Plugin
-A plugin or standalone binary to show [open-metrics](https://openmetrics.io/) formatted data in a terminal based graph.
+A JFrog CLI plugin or standalone binary to show [open-metrics](https://openmetrics.io/) formatted data in a terminal based graph.
 
 - JFrog Artifactory
 ![The Metrics Viewer Graph - single metric](images/metrics-viewer-graph.png)
