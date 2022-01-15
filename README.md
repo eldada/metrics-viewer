@@ -44,7 +44,7 @@ docker run --rm metrics-viewer:0.2.1 --version
 If you don't want to install the plugin from the [JFrog CLI Plugins Registry](https://github.com/jfrog/jfrog-cli-plugins-reg), it needs to be built and installed manually.<br>
 
 Follow these steps to install and use this plugin with JFrog CLI.
-1. Make sure JFrog CLI is installed on you machine by running ```jfrog```. If it is not installed, [install](https://jfrog.com/getcli/) it.
+1. Make sure JFrog CLI is installed on you machine by running ```jf```. If it is not installed, [install](https://jfrog.com/getcli/) it.
 2. Create a directory named ```plugins``` under ```~/.jfrog/``` if it does not exist already.
 3. Clone this repository.
 4. CD into the root directory of the cloned project.
@@ -54,17 +54,17 @@ Follow these steps to install and use this plugin with JFrog CLI.
 ## Installation with JFrog CLI (when plugin is in the JFrog CLI Plugins Registry)
 Installing the latest version:
 ```shell
-jfrog plugin install metrics-viewer
+jf plugin install metrics-viewer
 ```
 
 Installing a specific version:
 ```shell
-jfrog plugin install metrics-viewer@version
+jf plugin install metrics-viewer@version
 ```
 
 Uninstalling a plugin
 ```shell
-jfrog plugin uninstall metrics-viewer
+jf plugin uninstall metrics-viewer
 ```
 
 ## Artifactory Metrics
@@ -95,19 +95,19 @@ curl -s -uadmin:password http://localhost:8082/artifactory/api/v1/metrics
 The **metrics-viewer** can be run as a JFrog CLI Plugin or directly as a binary
 - **Usage**
 ```shell
-jfrog metrics-viewer <command> [options]
+jf metrics-viewer <command> [options]
 ```  
 
 - **Commands**: See available commands by just running the binary
 ```shell
-jfrog metrics-viewer
-jfrog metrics-viewer help
+jf metrics-viewer
+jf metrics-viewer help
 ```
 
 - **Options**: To see available options for each command, call it with the help
 ```shell
-jfrog metrics-viewer help graph 
-jfrog metrics-viewer help print 
+jf metrics-viewer help graph 
+jf metrics-viewer help print 
 ```
 #### As a standalone binary
 - **Usage**
@@ -131,22 +131,22 @@ jfrog metrics-viewer help print
 - Using the **metrics-viewer** binary
 ```shell
 # Use with the default Artifactory that is configured by the JFrog CLI
-jfrog metrics-viewer graph
+jf metrics-viewer graph
 
 # Use with direct Artifactory metrics API URL
-jfrog metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
+jf metrics-viewer graph --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password
 
 # Use with direct Metadata metrics API URL (NOTE: must get an access token from Artifactory)
-jfrog metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
+jf metrics-viewer graph --url http://localhost:8082/metadata/api/v1/metrics --token ${TOKEN}
 
 # Print metrics of the default Artifactory that is configured by the JFrog CLI
-jfrog metrics-viewer print
+jf metrics-viewer print
 
 # Print metrics of the "art17" Artifactory with name matching the "app_" filter
-jfrog metrics-viewer print --server-id art17 --filter 'app_.*'
+jf metrics-viewer print --server-id art17 --filter 'app_.*'
 
 # Print selected Artifactory metrics as CSV
-jfrog metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
+jf metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics --user admin --password password \
     --format csv --metrics jfrt_runtime_heap_totalmemory_bytes,jfrt_db_connections_active_total
 ```
 
