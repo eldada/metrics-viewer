@@ -2,15 +2,16 @@ package visualization
 
 import (
 	"errors"
+	"reflect"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"sync"
-	"testing"
-	"time"
 )
 
 type mockProvider struct {
@@ -70,13 +71,13 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 			},
 			expectedFields: &fields{
 				hasError: true,
-				header:   tview.NewTextView().SetText("JFrog metrics\n[red]error[-]"),
+				header:   tview.NewTextView().SetText("Metrics Viewer\n[red]error[-]"),
 			},
 		},
 		{
 			name: "clear error",
 			fields: &fields{
-				header:              tview.NewTextView().SetText("JFrog metrics\n[red]error[-]"),
+				header:              tview.NewTextView().SetText("Metrics Viewer\n[red]error[-]"),
 				provider:            mockProvider{},
 				hasError:            true,
 				missingMetricsCache: newMissingMetricsCache(),
@@ -86,7 +87,7 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 			},
 			expectedFields: &fields{
 				hasError: false,
-				header:   tview.NewTextView().SetText("JFrog metrics"),
+				header:   tview.NewTextView().SetText("Metrics Viewer"),
 			},
 		},
 		{

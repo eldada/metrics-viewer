@@ -3,16 +3,25 @@ package visualization
 import (
 	"context"
 	"fmt"
+	"io"
+	"math/rand"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"io"
-	"math/rand"
-	"strings"
-	"sync"
-	"time"
 )
+
+var version = "unknown"
+
+// SetVersion sets the version for display in the UI
+func SetVersion(v string) {
+	version = v
+}
 
 type Index interface {
 }
@@ -45,10 +54,13 @@ func NewIndex() *index {
 }
 
 const maximumSelectedItems = 5
-const defaultHeader = "JFrog metrics"
+const defaultHeader = "Metrics Viewer"
+const usageInstructions = "Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • Quit or CTRL+C to exit"
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
-const filterColor = "[darkgray:gray:b]Filter: "
+const filterColor = "[white:blue:b]"
+
+const cursorChar = "█"
 
 var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]"}
 
@@ -61,9 +73,17 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.app = tview.NewApplication()
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
 	i.rightPane = tview.NewTextView().SetDynamicColors(true)
-	i.header = tview.NewTextView().SetTextAlign(tview.AlignCenter).SetDynamicColors(true).SetText(defaultHeader)
+	i.header = tview.NewTextView().
+		SetTextAlign(tview.AlignLeft).
+		SetDynamicColors(true).
+		SetText("[yellow::b]" + defaultHeader + " (" + version + "[-:-:-])\n[::d]" + usageInstructions + "[-:-:-]")
+
+	newMenu := i.generateMenu()
+	i.allItemsMenu = newMenu
+	i.currentMenu = newMenu
+
 	i.grid = tview.NewGrid().
-		SetRows(3, 0).
+		SetRows(2, 0).
 		SetColumns(-3, -10, -3).
 		SetMinSize(0, 30).
 		SetBorders(true).
@@ -72,13 +92,11 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 
 	i.grid.SetBackgroundColor(tcell.ColorBlack)
 
-	newMenu := i.generateMenu()
-	i.allItemsMenu = newMenu
-	i.currentMenu = newMenu
-
 	i.grid.AddItem(i.currentMenu, 1, 0, 1, 1, 0, 100, false)
 	i.grid.AddItem(i.mainContent, 1, 1, 1, 1, 0, 100, false)
 	i.grid.AddItem(i.rightPane, 1, 2, 1, 1, 0, 100, false)
+
+	i.searchbarClear()
 
 	i.app = i.app.SetRoot(i.grid, true).SetFocus(i.currentMenu)
 	go i.updateMenuOnGrid(ctx, interval)
@@ -167,21 +185,36 @@ func (i *index) generateMenu() *tview.List {
 
 	menu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) { i.selectedFunc(name) })
 	menu.SetWrapAround(false)
-	menu.SetBorderPadding(0, 0, 1, 0)
+	menu.SetBorderPadding(0, 0, 0, 0)
+	menu.ShowSecondaryText(false)
 	menu.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyRune {
+			if event.Rune() == '/' {
+				i.searchbarClear()
+				menu.SetCurrentItem(filterItemIndex)
+				return nil
+			}
 			i.searchbarInput(event.Rune())
 		} else if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
 			i.searchbarDelete()
 		} else if event.Key() == tcell.KeyEscape {
 			i.searchbarClear()
+		} else if event.Key() == tcell.KeyEnter {
+			// If we're in the filter box, move to the first item after filter
+			if menu.GetCurrentItem() == filterItemIndex {
+				if menu.GetItemCount() > 2 { // If there are items other than filter and quit
+					menu.SetCurrentItem(2) // Move to first actual item
+				} else {
+					menu.SetCurrentItem(quitItemIndex) // Move to quit if no items
+				}
+			}
 		}
 		return event
 	})
 	i.addFilterMenuItem(menu)
 	i.addQuitMenuItem(menu)
 
-	menu.SetCurrentItem(quitItemIndex)
+	menu.SetCurrentItem(filterItemIndex)
 	return menu
 }
 
@@ -341,7 +374,7 @@ func findCurrentMetricValue(metrics []models.Metric) float64 {
 }
 
 func (i *index) addFilterMenuItem(menu *tview.List) {
-	menu.AddItem("", "", 0, nil)
+	menu.AddItem(addColor("Filter: "+cursorChar, filterColor), "", 0, nil)
 }
 
 func (i *index) addQuitMenuItem(menu *tview.List) {
@@ -354,22 +387,33 @@ func (i *index) addQuitMenuItem(menu *tview.List) {
 }
 
 func (i *index) addItemToMenu(m models.Metrics) {
-	i.allItemsMenu.AddItem(m.Name, m.Description, 0, nil)
+	i.allItemsMenu.AddItem(m.Name, "", 0, nil)
 	if i.currentMenu != i.allItemsMenu {
 		filterText, _ := i.allItemsMenu.GetItemText(filterItemIndex)
 		clearedText := clearColor(filterText, filterColor)
 		if textContains(m.Name, clearedText) || textContains(m.Description, clearedText) {
-			i.currentMenu.AddItem(m.Name, m.Description, 0, nil)
+			i.currentMenu.AddItem(m.Name, "", 0, nil)
 		}
 	}
 }
 
 func textContains(text string, filterText string) bool {
-	return strings.Contains(strings.ToLower(text), strings.ToLower(filterText))
+	if filterText == "" {
+		return true
+	}
+	matched, err := regexp.MatchString(filterText, strings.ToLower(text))
+	if err != nil {
+		return strings.Contains(strings.ToLower(text), strings.ToLower(filterText))
+	}
+	return matched
 }
 
 func (i *index) setSecondHeader(secondHeader string) *tview.TextView {
-	return i.header.SetText(fmt.Sprintf("%s\n%s", defaultHeader, secondHeader))
+	headerText := fmt.Sprintf("[yellow::b]%s %s[-:-:-]\n[::d]%s[-:-:-]", defaultHeader, version, usageInstructions)
+	if secondHeader != "" {
+		headerText += "\n" + secondHeader
+	}
+	return i.header.SetText(headerText)
 }
 
 func (i *index) setRightPane(secondHeader string) *tview.TextView {
@@ -379,13 +423,16 @@ func (i *index) setRightPane(secondHeader string) *tview.TextView {
 func (i *index) searchbarInput(r rune) {
 	if r >= '!' && r <= '~' {
 		text, _ := i.allItemsMenu.GetItemText(filterItemIndex)
-		i.setFilterText(clearColor(text, filterColor) + string(r))
+		clearedText := strings.TrimPrefix(clearColor(text, filterColor), "Filter: ")
+		clearedText = strings.TrimSuffix(clearedText, cursorChar)
+		i.setFilterText(clearedText + string(r))
 	}
 }
 
 func (i *index) searchbarDelete() {
 	text, _ := i.allItemsMenu.GetItemText(filterItemIndex)
-	clearedText := clearColor(text, filterColor)
+	clearedText := strings.TrimPrefix(clearColor(text, filterColor), "Filter: ")
+	clearedText = strings.TrimSuffix(clearedText, cursorChar)
 	if len(clearedText) == 0 {
 		return
 	}
@@ -393,13 +440,19 @@ func (i *index) searchbarDelete() {
 }
 
 func (i *index) searchbarClear() {
-	i.setFilterText("")
+	i.allItemsMenu.SetItemText(filterItemIndex, addColor("Filter: "+cursorChar, filterColor), "")
+	if i.allItemsMenu != i.currentMenu {
+		i.currentMenu.SetItemText(filterItemIndex, addColor("Filter: "+cursorChar, filterColor), "")
+	}
+	i.refreshMenuAccordingToFilterInput("")
 }
 
 func (i *index) setFilterText(newFilterText string) {
 	newFilterColored := newFilterText
 	if len(newFilterText) > 0 {
-		newFilterColored = addColor(newFilterText, filterColor)
+		newFilterColored = addColor("Filter: "+newFilterText+cursorChar, filterColor)
+	} else {
+		newFilterColored = addColor("Filter: "+cursorChar, filterColor)
 	}
 	i.allItemsMenu.SetItemText(filterItemIndex, newFilterColored, "")
 	if i.allItemsMenu != i.currentMenu {
