@@ -46,6 +46,7 @@ type index struct {
 	isFilterActive       bool
 	lastFocusedBox       tview.Primitive // Track which box had focus
 	lastSelectedBoxIndex int             // Track selected item in Selected Metrics box
+	updatingSelectedBox  bool            // Guard against recursive updates
 }
 
 func NewIndex() *index {
@@ -62,7 +63,7 @@ const defaultHeader = "Metrics Viewer"
 const usageInstructions = "Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • CTRL+C to exit"
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
-const selectedItemColor = "[white:blue:b]"
+const selectedItemColor = "[green::b]"
 const thinSeparatorLine = "───────────────────────────────────────────────────────────────"
 
 var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]"}
@@ -71,6 +72,10 @@ var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gol
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
 	i.provider = prov
 	i.app = tview.NewApplication()
+	// To customize the selection background color, you could add:
+	// tview.Styles.PrimitiveBackgroundColor = tcell.ColorDarkBlue
+	// tview.Styles.ContrastBackgroundColor = tcell.ColorBlue
+	// tview.Styles.MoreContrastBackgroundColor = tcell.ColorNavy
 	i.mainContent = tview.NewTextView().SetDynamicColors(true)
 	i.rightPane = tview.NewTextView().SetDynamicColors(true)
 	i.header = tview.NewTextView().
@@ -104,11 +109,43 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.selectedMetricsBox.SetTitle("Selected Metrics")
 	i.selectedMetricsBox.SetTitleAlign(tview.AlignLeft)
 	i.selectedMetricsBox.SetBorder(true)
+	i.selectedMetricsBox.SetHighlightFullLine(true)
 
 	i.selectedMetricsBox.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) {
 		if name != thinSeparatorLine {
+			name = i.cleanItemName(name)
 			i.selectedFunc(name)
 		}
+	})
+
+	// Set up navigation handler once
+	i.selectedMetricsBox.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		currentItem := i.selectedMetricsBox.GetCurrentItem()
+		itemCount := i.selectedMetricsBox.GetItemCount()
+
+		if event.Key() == tcell.KeyDown {
+			// If at the bottom, move to available metrics box
+			if currentItem == itemCount-1 {
+				i.app.SetFocus(i.currentMenu)
+				i.currentMenu.SetCurrentItem(0)
+				return nil
+			}
+			// Let tview handle normal down navigation
+			return event
+		} else if event.Key() == tcell.KeyUp {
+			// If we're in the available metrics and at the top, try to move to selected metrics
+			if i.app.GetFocus() == i.currentMenu &&
+				i.currentMenu.GetCurrentItem() == 0 &&
+				i.selectedMetricsBox.GetItemCount() > 0 {
+				i.app.SetFocus(i.selectedMetricsBox)
+				i.selectedMetricsBox.SetCurrentItem(i.selectedMetricsBox.GetItemCount() - 1)
+				return nil
+			}
+			// Let tview handle normal up navigation
+			return event
+		}
+
+		return event
 	})
 
 	// Create the available metrics menu
@@ -118,6 +155,7 @@ func (i *index) Present(ctx context.Context, interval time.Duration, prov provid
 	i.currentMenu.SetTitle("Available Metrics")
 	i.currentMenu.SetTitleAlign(tview.AlignLeft)
 	i.currentMenu.SetBorder(true)
+	i.currentMenu.SetHighlightFullLine(true)
 
 	i.currentMenu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) {
 		if name != thinSeparatorLine {
@@ -390,14 +428,24 @@ func (i *index) generateMenu() *tview.List {
 
 // Helper function to clean item names from all formatting and prefixes
 func (i *index) cleanItemName(name string) string {
-	// Remove all instances of "(*) " prefix
-	for strings.HasPrefix(name, "(*) ") {
-		name = strings.TrimPrefix(name, "(*) ")
+	// Remove all instances of "(*) " prefix - keep removing until none left
+	for strings.Contains(name, "(*) ") {
+		name = strings.Replace(name, "(*) ", "", 1)
 	}
-	// Remove any color formatting
+	// Remove any remaining prefix patterns
+	name = strings.TrimPrefix(name, "(*)")
+	name = strings.TrimSpace(name)
+
+	// Remove any color formatting - remove all tview color tags
+	// Pattern: [color:background:attributes]
+	re := regexp.MustCompile(`\[[^\]]*\]`)
+	name = re.ReplaceAllString(name, "")
+
+	// Also remove specific color patterns we know about
 	name = clearColor(name, selectedItemColor)
 	name = clearColor(name, highlightColor)
-	return name
+
+	return strings.TrimSpace(name)
 }
 
 // Reacting to the user selection
@@ -418,7 +466,10 @@ func (i *index) selectedFunc(name string) {
 	i.hasError = false
 
 	// Update both boxes
-	i.updateSelectedMetricsBox()
+	// Use goroutine to prevent hang but without delay for responsiveness
+	go func() {
+		i.updateSelectedMetricsBox()
+	}()
 
 	// Only refresh the available metrics if we're not filtering
 	if !i.isFilterActive {
@@ -625,11 +676,14 @@ func (i *index) setRightPane(secondHeader string) *tview.TextView {
 }
 
 func (i *index) updateSelectedMetricsBox() {
-	// Store current selection if box is focused
-	currentIndex := -1
-	if i.lastFocusedBox == i.selectedMetricsBox {
-		currentIndex = i.selectedMetricsBox.GetCurrentItem()
+	// Guard against recursive calls
+	if i.updatingSelectedBox {
+		return
 	}
+	i.updatingSelectedBox = true
+	defer func() {
+		i.updatingSelectedBox = false
+	}()
 
 	i.selectedMetricsBox.Clear()
 
@@ -638,55 +692,12 @@ func (i *index) updateSelectedMetricsBox() {
 	copy(sortedSelected, i.selected)
 	sort.Strings(sortedSelected)
 
-	// Add selected items
+	// Add selected items with consistent green formatting
 	for _, selectedName := range sortedSelected {
-		i.selectedMetricsBox.AddItem(addColor("(*) "+selectedName, selectedItemColor), "", 0, nil)
+		// Always use green bold formatting for consistency
+		displayText := fmt.Sprintf("[green::b](*) %s[-]", selectedName)
+		i.selectedMetricsBox.AddItem(displayText, "", 0, nil)
 	}
-
-	// Restore selection if box was focused and has items
-	if currentIndex >= 0 && i.selectedMetricsBox.GetItemCount() > 0 {
-		// Ensure the index is valid for the current number of items
-		if currentIndex >= i.selectedMetricsBox.GetItemCount() {
-			currentIndex = i.selectedMetricsBox.GetItemCount() - 1
-		}
-		i.selectedMetricsBox.SetCurrentItem(currentIndex)
-	}
-
-	// Restore selection handler
-	i.selectedMetricsBox.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) {
-		if name != thinSeparatorLine {
-			name = i.cleanItemName(name) // Remove the (*) prefix and color
-			i.selectedFunc(name)
-		}
-	})
-
-	// Add navigation handler
-	i.selectedMetricsBox.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		currentItem := i.selectedMetricsBox.GetCurrentItem()
-		itemCount := i.selectedMetricsBox.GetItemCount()
-
-		if event.Key() == tcell.KeyDown {
-			// If at the bottom, move to available metrics box
-			if currentItem == itemCount-1 {
-				i.app.SetFocus(i.currentMenu)
-				i.currentMenu.SetCurrentItem(0)
-				return nil
-			}
-			// Move down if not at bottom
-			if currentItem < itemCount-1 {
-				i.selectedMetricsBox.SetCurrentItem(currentItem + 1)
-			}
-			return nil
-		} else if event.Key() == tcell.KeyUp {
-			// Move up if not at top
-			if currentItem > 0 {
-				i.selectedMetricsBox.SetCurrentItem(currentItem - 1)
-			}
-			return nil
-		}
-
-		return event
-	})
 }
 
 func (i *index) refreshMenuAccordingToFilterInput() {
