@@ -87,7 +87,7 @@ func convertToData(timeData map[float64]map[int]float64, numberOfGraphs int, dat
 
 func sortKeys(data map[float64]map[int]float64) []float64 {
 	allKeys := make([]float64, 0, len(data))
-	for k, _ := range data {
+	for k := range data {
 		allKeys = append(allKeys, k)
 	}
 

@@ -9,7 +9,6 @@ import (
 
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,20 +41,19 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 	modifiedMetrics.AddToMetrics(defaultMetrics)
 	type fields struct {
 		currentMenu          *tview.List
-		allItemsMenu         *tview.List
 		grid                 *tview.Grid
 		app                  *tview.Application
 		mainContent          *tview.TextView
 		provider             provider.Provider
 		missingMetricsCache  missingMetricsCache
 		header               *tview.TextView
-		metricName           *tview.TextView
 		selected             []string
 		items                map[string]models.Metrics
 		hasError             bool
 		drawing              bool
 		userInteractionMutex sync.Locker
 		rightPane            *tview.TextView
+		selectedMetricsBox   *tview.List
 	}
 	tests := []struct {
 		name               string
@@ -71,23 +69,23 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 			},
 			expectedFields: &fields{
 				hasError: true,
-				header:   tview.NewTextView().SetText("Metrics Viewer\n[red]error[-]"),
+				header:   tview.NewTextView().SetText("[yellow::b]Metrics Viewer (unknown)[-:-:-]\n[::d]Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • Quit or CTRL+C to exit[-:-:-]\n[red]error[-]"),
 			},
 		},
 		{
 			name: "clear error",
 			fields: &fields{
-				header:              tview.NewTextView().SetText("Metrics Viewer\n[red]error[-]"),
+				header:              tview.NewTextView().SetText("[yellow::b]Metrics Viewer (unknown)[-:-:-]\n[::d]Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • Quit or CTRL+C to exit[-:-:-]\n[red]error[-]"),
 				provider:            mockProvider{},
 				hasError:            true,
 				missingMetricsCache: newMissingMetricsCache(),
-				allItemsMenu:        tview.NewList(),
 				currentMenu:         tview.NewList(),
+				selectedMetricsBox:  tview.NewList(),
 				items:               map[string]models.Metrics{},
 			},
 			expectedFields: &fields{
 				hasError: false,
-				header:   tview.NewTextView().SetText("Metrics Viewer"),
+				header:   tview.NewTextView().SetText("[yellow::b]Metrics Viewer (unknown)[-:-:-]\n[::d]Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • Quit or CTRL+C to exit[-:-:-]"),
 			},
 		},
 		{
@@ -96,8 +94,8 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				header:              tview.NewTextView(),
 				provider:            mockProvider{},
 				missingMetricsCache: newMissingMetricsCache(),
-				allItemsMenu:        tview.NewList(),
 				currentMenu:         tview.NewList(),
+				selectedMetricsBox:  tview.NewList(),
 				items:               map[string]models.Metrics{},
 			},
 			expectedFields: &fields{
@@ -110,8 +108,8 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				header:              tview.NewTextView(),
 				provider:            mockProvider{},
 				missingMetricsCache: newMissingMetricsCache(),
-				allItemsMenu:        tview.NewList(),
 				currentMenu:         tview.NewList(),
+				selectedMetricsBox:  tview.NewList(),
 				items: map[string]models.Metrics{
 					"hello_abc": {Metrics: defaultMetrics[0].Metrics, Name: "hello", Key: "hello_abc"},
 				},
@@ -128,8 +126,8 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				header:               tview.NewTextView(),
 				provider:             mockProvider{},
 				missingMetricsCache:  newMissingMetricsCache(),
-				allItemsMenu:         tview.NewList(),
 				currentMenu:          tview.NewList(),
+				selectedMetricsBox:   tview.NewList(),
 				userInteractionMutex: &sync.Mutex{},
 				mainContent:          tview.NewTextView(),
 				rightPane:            tview.NewTextView(),
@@ -148,8 +146,8 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				header:               tview.NewTextView(),
 				provider:             mockProvider{},
 				missingMetricsCache:  newMissingMetricsCache(),
-				allItemsMenu:         tview.NewList(),
 				currentMenu:          tview.NewList(),
+				selectedMetricsBox:   tview.NewList(),
 				userInteractionMutex: &sync.Mutex{},
 				mainContent:          tview.NewTextView(),
 				rightPane:            tview.NewTextView(),
@@ -168,8 +166,8 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 				header:              tview.NewTextView(),
 				provider:            mockProvider{},
 				missingMetricsCache: newMissingMetricsCache(),
-				allItemsMenu:        tview.NewList(),
 				currentMenu:         tview.NewList(),
+				selectedMetricsBox:  tview.NewList(),
 				items: map[string]models.Metrics{
 					"new_item": {Metrics: defaultMetrics[0].Metrics, Name: "new", Key: "new_item"},
 				},
@@ -186,33 +184,31 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &index{
 				currentMenu:          tt.fields.currentMenu,
-				allItemsMenu:         tt.fields.allItemsMenu,
 				grid:                 tt.fields.grid,
 				app:                  tt.fields.app,
 				mainContent:          tt.fields.mainContent,
 				provider:             tt.fields.provider,
 				missingMetricsCache:  tt.fields.missingMetricsCache,
 				header:               tt.fields.header,
-				metricName:           tt.fields.metricName,
 				selected:             tt.fields.selected,
 				items:                tt.fields.items,
 				hasError:             tt.fields.hasError,
 				drawing:              tt.fields.drawing,
 				userInteractionMutex: tt.fields.userInteractionMutex,
 				rightPane:            tt.fields.rightPane,
+				selectedMetricsBox:   tt.fields.selectedMetricsBox,
 			}
 
 			i.replaceMenuContentOnGrid()
 
 			assertEqualIfNotNil(t, tt.expectedFields.currentMenu, i.currentMenu, "currentMenu")
-			assertEqualIfNotNil(t, tt.expectedFields.allItemsMenu, i.allItemsMenu, "allItemsMenu")
+			assertEqualIfNotNil(t, tt.expectedFields.selectedMetricsBox, i.selectedMetricsBox, "selectedMetricsBox")
 			assertEqualIfNotNil(t, tt.expectedFields.grid, i.grid, "grid")
 			assertEqualIfNotNil(t, tt.expectedFields.app, i.app, "app")
 			assertEqualIfNotNil(t, tt.expectedFields.mainContent, i.mainContent, "mainContent")
 			assertEqualIfNotNil(t, tt.expectedFields.provider, i.provider, "provider")
 			assertEqualIfNotNil(t, tt.expectedFields.missingMetricsCache, i.missingMetricsCache, "missingMetricsCache")
 			assertEqualIfNotNil(t, tt.expectedFields.header, i.header, "header")
-			assertEqualIfNotNil(t, tt.expectedFields.metricName, i.metricName, "metricName")
 			assertEqualIfNotNil(t, tt.expectedFields.selected, i.selected, "selected")
 			assertEqualIfNotNil(t, tt.expectedFields.items, i.items, "items")
 			assertEqualIfNotNil(t, tt.expectedFields.hasError, i.hasError, "hasError")
@@ -232,40 +228,37 @@ func Test_index_generateMenuReturnsListThatIsNotTheCurrentMenu(t *testing.T) {
 
 func Test_index_searchbar(t *testing.T) {
 	i := &index{
-		grid:  tview.NewGrid(),
-		app:   tview.NewApplication(),
-		items: map[string]models.Metrics{},
-		allItemsMenu: tview.NewList().AddItem("", "", 0, nil).
-			AddItem("Quit", "", 0, nil).
-			AddItem("ab", "", 0, nil).
-			AddItem("abc", "", 0, nil),
+		grid: tview.NewGrid(),
+		app:  tview.NewApplication(),
+		items: map[string]models.Metrics{
+			"ab":  {Name: "ab"},
+			"abc": {Name: "abc"},
+		},
+		selectedMetricsBox:   tview.NewList(),
 		userInteractionMutex: &sync.Mutex{},
+		filterBox:            tview.NewInputField().SetLabel("Search metrics (regex): "),
 	}
+
 	i.currentMenu = i.generateMenu()
-	i.currentMenu.GetInputCapture()(tcell.NewEventKey(tcell.KeyRune, 'a', tcell.ModNone))
-	main, _ := i.allItemsMenu.GetItemText(0)
-	assert.Equal(t, "[darkgray:gray:b]Filter: a[-]", main)
-	assert.Equal(t, 4, i.currentMenu.GetItemCount())
+	i.filterBox.SetText("a")
+	i.refreshMenuAccordingToFilterInput()
+	assert.Equal(t, 2, i.currentMenu.GetItemCount()) // Both items match "a"
 
-	i.currentMenu.GetInputCapture()(tcell.NewEventKey(tcell.KeyRune, 'b', tcell.ModNone))
-	main, _ = i.allItemsMenu.GetItemText(0)
-	assert.Equal(t, "[darkgray:gray:b]Filter: ab[-]", main)
-	assert.Equal(t, 4, i.currentMenu.GetItemCount())
+	i.filterBox.SetText("ab")
+	i.refreshMenuAccordingToFilterInput()
+	assert.Equal(t, 2, i.currentMenu.GetItemCount()) // Both items match "ab"
 
-	i.currentMenu.GetInputCapture()(tcell.NewEventKey(tcell.KeyRune, 'c', tcell.ModNone))
-	main, _ = i.allItemsMenu.GetItemText(0)
-	assert.Equal(t, "[darkgray:gray:b]Filter: abc[-]", main)
-	assert.Equal(t, 3, i.currentMenu.GetItemCount())
+	i.filterBox.SetText("abc")
+	i.refreshMenuAccordingToFilterInput()
+	assert.Equal(t, 1, i.currentMenu.GetItemCount()) // Only one item matches "abc"
 
-	i.currentMenu.GetInputCapture()(tcell.NewEventKey(tcell.KeyBackspace, 0, tcell.ModNone))
-	main, _ = i.allItemsMenu.GetItemText(0)
-	assert.Equal(t, "[darkgray:gray:b]Filter: ab[-]", main)
-	assert.Equal(t, 4, i.currentMenu.GetItemCount())
+	i.filterBox.SetText("ab")
+	i.refreshMenuAccordingToFilterInput()
+	assert.Equal(t, 2, i.currentMenu.GetItemCount()) // Back to both items matching "ab"
 
-	i.currentMenu.GetInputCapture()(tcell.NewEventKey(tcell.KeyEscape, 0, tcell.ModNone))
-	main, _ = i.allItemsMenu.GetItemText(0)
-	assert.Equal(t, "", main)
-	assert.Equal(t, 4, i.currentMenu.GetItemCount())
+	i.filterBox.SetText("")
+	i.refreshMenuAccordingToFilterInput()
+	assert.Equal(t, 2, i.currentMenu.GetItemCount()) // All items shown when filter is empty
 }
 
 func assertEqualIfNotNil(t *testing.T, expected interface{}, actual interface{}, fieldName string) {
