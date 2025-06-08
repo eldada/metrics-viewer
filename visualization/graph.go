@@ -3,20 +3,29 @@ package visualization
 import (
 	"bufio"
 	"fmt"
-	tm "github.com/buger/goterm"
-	"github.com/eldada/metrics-viewer/models"
 	"sort"
 	"strings"
+
+	tm "github.com/buger/goterm"
+	"github.com/eldada/metrics-viewer/models"
 )
 
 type Graph interface {
+	SetPointCharacter(char string)
 }
 
 type graph struct {
+	pointChar string
 }
 
 func NewGraph() *graph {
-	return &graph{}
+	return &graph{
+		pointChar: "·", // Default to middle dot (softer than bullet)
+	}
+}
+
+func (g *graph) SetPointCharacter(char string) {
+	g.pointChar = char
 }
 
 func (g *graph) SprintOnce(width, height int, multipleMetrics ...models.Metrics) string {
@@ -55,7 +64,12 @@ func (g *graph) SprintOnce(width, height int, multipleMetrics ...models.Metrics)
 
 	stringBuilder := &strings.Builder{}
 	tm.Output = bufio.NewWriter(stringBuilder)
-	_, err := tm.Println(chart.Draw(data))
+	result := chart.Draw(data)
+
+	// Replace the hard-coded bullet points with the selected character
+	result = strings.ReplaceAll(result, "•", g.pointChar)
+
+	_, err := tm.Println(result)
 	if err != nil {
 		fmt.Printf("Error while drawing: %v\n", err)
 	}
