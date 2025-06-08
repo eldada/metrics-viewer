@@ -60,7 +60,7 @@ func NewIndex() *index {
 
 const maximumSelectedItems = 5
 const defaultHeader = "Metrics Viewer"
-const usageInstructions = "Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • CTRL+C to exit"
+const usageInstructions = "Use '/' to search metrics (ESC to clear) • Use ↑↓ to navigate • ENTER or SPACE to select • CTRL+C to exit"
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
 const selectedItemColor = "[green::b]"

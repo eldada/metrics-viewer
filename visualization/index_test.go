@@ -303,7 +303,7 @@ func Test_index_replaceMenuContentOnGrid(t *testing.T) {
 	modifiedMetrics := newMissingMetricsCache()
 	modifiedMetrics.AddToMetrics(defaultMetrics)
 
-	expectedHeaderText := "[yellow::b]Metrics Viewer (unknown[-:-:-]); [::d]Use '/' to search metrics (supports regex) • Use ↑↓ to navigate • ENTER to select • ESC to clear • CTRL+C to exit[-:-:-]"
+	expectedHeaderText := "[yellow::b]Metrics Viewer (unknown[-:-:-]); [::d]Use '/' to search metrics (ESC to clear) • Use ↑↓ to navigate • ENTER or SPACE to select • CTRL+C to exit[-:-:-]"
 
 	tests := []struct {
 		name               string
