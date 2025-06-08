@@ -3,13 +3,14 @@ package provider
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/jfrog/jfrog-cli-core/v2/artifactory/utils"
 	"github.com/jfrog/jfrog-cli-core/v2/utils/config"
 	"github.com/jfrog/jfrog-client-go/http/jfroghttpclient"
 	"github.com/jfrog/jfrog-client-go/utils/io/httputils"
-	"io/ioutil"
-	"net/http"
-	"strings"
 )
 
 type UrlMetricsFetcher interface {
@@ -18,7 +19,8 @@ type UrlMetricsFetcher interface {
 
 func NewArtifactoryMetricsFetcher(rtDetails *config.ServerDetails) (*artifactoryMetricsFetcher, error) {
 	const useDefaultRetries = -1
-	sm, err := utils.CreateServiceManager(rtDetails, useDefaultRetries, false)
+	const useDefaultRetryWaitTime = -1
+	sm, err := utils.CreateServiceManager(rtDetails, useDefaultRetries, useDefaultRetryWaitTime, false)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +95,7 @@ func (f urlMetricsFetcher) Get() ([]byte, error) {
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected response status: %s", res.Status)
 	}
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 type Authenticator interface {
@@ -123,5 +125,5 @@ func (a AccessTokenAuthenticator) Authorize(req *http.Request) {
 }
 
 func (a AccessTokenAuthenticator) String() string {
-	return fmt.Sprintf("token: *****")
+	return "token: *****"
 }

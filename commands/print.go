@@ -2,14 +2,15 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/printer"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
-	"io"
-	"os"
-	"strings"
 )
 
 func GetPrintCommand() components.Command {
@@ -28,18 +29,11 @@ func getPrintFlags() []components.Flag {
 	return append(
 		getCommonFlags(),
 		components.StringFlag{
-			Name:         "format",
-			Description:  "Format in which to print the metrics (available: open-metrics, csv)",
+			BaseFlag:     components.NewFlag("format", "Format in which to print the metrics (available: open-metrics, csv)"),
 			DefaultValue: "open-metrics",
 		},
-		components.StringFlag{
-			Name:        "metrics",
-			Description: "Comma separated list of metrics to collect. This is required when the output format is csv",
-		},
-		components.BoolFlag{
-			Name:        "no-header",
-			Description: "Indicate whether to print the header line when the output format is csv",
-		},
+		components.NewStringFlag("metrics", "Comma separated list of metrics to collect. This is required when the output format is csv"),
+		components.NewBoolFlag("no-header", "Indicate whether to print the header line when the output format is csv"),
 	)
 }
 

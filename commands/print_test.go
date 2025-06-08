@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"github.com/eldada/metrics-viewer/printer"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/eldada/metrics-viewer/printer"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_parsePrintCmdConfig(t *testing.T) {
@@ -20,7 +20,7 @@ func Test_parsePrintCmdConfig(t *testing.T) {
 		return parsePrintCmdConfig(ctx)
 	})
 	testFilepath := path.Join(t.TempDir(), "foo")
-	require.NoError(t, ioutil.WriteFile(testFilepath, []byte("hello"), 0777))
+	require.NoError(t, os.WriteFile(testFilepath, []byte("hello"), 0777))
 	defaultCliCtx.stringFlags["file"] = testFilepath
 	tests := []struct {
 		name    string

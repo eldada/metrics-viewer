@@ -1,10 +1,11 @@
 package provider
 
 import (
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
-	"testing"
 )
 
 func Test_urlProvider(t *testing.T) {
@@ -16,7 +17,7 @@ func Test_urlProvider(t *testing.T) {
 	metrics, err := p.Get()
 	require.NoError(t, err)
 	actual := metricsToString(metrics)
-	expectedData, _ := ioutil.ReadFile("testdata/metrics1_sorted.txt")
+	expectedData, _ := os.ReadFile("testdata/metrics1_sorted.txt")
 	expected := string(expectedData)
 	assert.Equal(t, string(expected), actual)
 }
@@ -26,5 +27,5 @@ type metricsFetcherMock struct {
 }
 
 func (f metricsFetcherMock) Get() ([]byte, error) {
-	return ioutil.ReadFile(f.filename)
+	return os.ReadFile(f.filename)
 }
