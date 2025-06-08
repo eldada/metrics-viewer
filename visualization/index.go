@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -59,13 +60,16 @@ const usageInstructions = "Use '/' to search metrics (supports regex) • Use �
 const ignoreSecondaryText = "---N/A---"
 const highlightColor = "[lightgray::b](x) "
 const filterColor = "[white:blue:b]"
-
 const cursorChar = "█"
+const selectedItemColor = "[white:blue:b]"
+const separatorLine = "───────────────────────"
+const separatorItemIndex = 1
+const filterSeparatorIndex = 3
 
 var colors = []string{"[green]", "[yellow]", "[blue]", "[teal]", "[gray]", "[gold]", "[indigo]", "[lavender]"}
 
-const filterItemIndex = 0
-const quitItemIndex = 1
+const filterItemIndex = 2
+const quitItemIndex = 0
 
 // Main function to create the application
 func (i *index) Present(ctx context.Context, interval time.Duration, prov provider.Provider) {
@@ -128,6 +132,9 @@ func (i *index) updateMenuOnGrid(ctx context.Context, interval time.Duration) {
 func (i *index) replaceMenuContentOnGrid() {
 	metrics, err := i.provider.Get()
 
+	// Store current selection before update
+	currentItem := i.currentMenu.GetCurrentItem()
+
 	if err != nil {
 		i.setSecondHeader(fmt.Sprintf("[red]%s[-]", err.Error()))
 		i.hasError = true
@@ -146,6 +153,8 @@ func (i *index) replaceMenuContentOnGrid() {
 	i.upsertMetricsOnMenu(metrics)
 
 	if i.drawing {
+		// Restore selection after update
+		i.currentMenu.SetCurrentItem(currentItem)
 		i.app.Draw()
 	}
 }
@@ -155,10 +164,7 @@ func (i *index) upsertMetricsOnMenu(metrics []models.Metrics) {
 	for _, m := range metrics {
 		_, ok := i.items[m.Name]
 		if ok {
-			i.setDescriptionOnItems(i.currentMenu, m)
-			if i.allItemsMenu != i.currentMenu {
-				i.setDescriptionOnItems(i.allItemsMenu, m)
-			}
+			i.items[m.Name] = m
 
 			if selectedIndex := i.findSelectedIndex(m.Name); selectedIndex >= 0 {
 				i.removeSelected(selectedIndex)
@@ -167,9 +173,14 @@ func (i *index) upsertMetricsOnMenu(metrics []models.Metrics) {
 		} else {
 			i.addItemToMenu(m)
 		}
-
-		i.items[m.Name] = m
 	}
+
+	// Regenerate the menu to show updated items
+	newMenu := i.generateMenu()
+	i.grid.RemoveItem(i.currentMenu)
+	i.grid.AddItem(newMenu, 1, 0, 1, 1, 0, 100, false)
+	i.currentMenu = newMenu
+	i.app.SetFocus(i.currentMenu)
 }
 
 func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
@@ -183,15 +194,43 @@ func (i *index) setDescriptionOnItems(menu *tview.List, m models.Metrics) {
 func (i *index) generateMenu() *tview.List {
 	menu := tview.NewList()
 
-	menu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) { i.selectedFunc(name) })
+	menu.SetSelectedFunc(func(index int, name string, secondaryName string, shortcut rune) {
+		if name == separatorLine {
+			return
+		}
+		i.selectedFunc(name)
+	})
 	menu.SetWrapAround(false)
 	menu.SetBorderPadding(0, 0, 0, 0)
 	menu.ShowSecondaryText(false)
 	menu.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyUp {
+			currentItem := menu.GetCurrentItem()
+			if currentItem == separatorItemIndex || currentItem == filterSeparatorIndex {
+				if currentItem == separatorItemIndex {
+					menu.SetCurrentItem(quitItemIndex)
+				} else {
+					menu.SetCurrentItem(filterItemIndex)
+				}
+				return nil
+			}
+		} else if event.Key() == tcell.KeyDown {
+			currentItem := menu.GetCurrentItem()
+			if currentItem == separatorItemIndex || currentItem == filterSeparatorIndex {
+				if currentItem == separatorItemIndex {
+					menu.SetCurrentItem(filterItemIndex)
+				} else {
+					menu.SetCurrentItem(4)
+				}
+				return nil
+			}
+		}
+
 		if event.Key() == tcell.KeyRune {
 			if event.Rune() == '/' {
 				i.searchbarClear()
-				menu.SetCurrentItem(filterItemIndex)
+				i.currentMenu.SetCurrentItem(filterItemIndex)
+				i.app.SetFocus(i.currentMenu)
 				return nil
 			}
 			i.searchbarInput(event.Rune())
@@ -200,27 +239,100 @@ func (i *index) generateMenu() *tview.List {
 		} else if event.Key() == tcell.KeyEscape {
 			i.searchbarClear()
 		} else if event.Key() == tcell.KeyEnter {
-			// If we're in the filter box, move to the first item after filter
 			if menu.GetCurrentItem() == filterItemIndex {
-				if menu.GetItemCount() > 2 { // If there are items other than filter and quit
-					menu.SetCurrentItem(2) // Move to first actual item
+				if menu.GetItemCount() > 4 {
+					menu.SetCurrentItem(4)
 				} else {
-					menu.SetCurrentItem(quitItemIndex) // Move to quit if no items
+					menu.SetCurrentItem(quitItemIndex)
 				}
 			}
 		}
 		return event
 	})
-	i.addFilterMenuItem(menu)
-	i.addQuitMenuItem(menu)
 
+	// Add Quit at the top
+	menu.AddItem("Quit", "Choose to exit", 0, func() {
+		if closer, ok := i.provider.(io.Closer); ok {
+			_ = closer.Close()
+		}
+		i.app.Stop()
+	})
+
+	// Add separator after Quit
+	menu.AddItem(separatorLine, "", 0, func() {
+		menu.SetCurrentItem(quitItemIndex)
+	})
+
+	// Add Filter
+	menu.AddItem(addColor("Filter: "+cursorChar, filterColor), "", 0, nil)
+
+	// Add separator after Filter
+	menu.AddItem(separatorLine, "", 0, func() {
+		menu.SetCurrentItem(filterItemIndex)
+	})
+
+	// Sort selected items
+	sortedSelected := make([]string, len(i.selected))
+	copy(sortedSelected, i.selected)
+	sort.Strings(sortedSelected)
+
+	// Add selected items at the top
+	for _, selectedName := range sortedSelected {
+		menu.AddItem(addColor("(*) "+selectedName, selectedItemColor), "", 0, nil)
+	}
+
+	// Get all non-selected items and sort them
+	var nonSelectedItems []string
+	for name := range i.items {
+		isSelected := false
+		for _, selectedName := range i.selected {
+			if name == selectedName {
+				isSelected = true
+				break
+			}
+		}
+		if !isSelected {
+			nonSelectedItems = append(nonSelectedItems, name)
+		}
+	}
+	sort.Strings(nonSelectedItems)
+
+	// Add all non-selected items
+	for _, name := range nonSelectedItems {
+		menu.AddItem(name, "", 0, nil)
+	}
+
+	// Ensure the menu starts with no offset to show the top items
+	menu.SetOffset(0, 0)
 	menu.SetCurrentItem(filterItemIndex)
 	return menu
 }
 
+// Helper function to clean item names from all formatting and prefixes
+func (i *index) cleanItemName(name string) string {
+	// Remove all instances of "(*) " prefix
+	for strings.HasPrefix(name, "(*) ") {
+		name = strings.TrimPrefix(name, "(*) ")
+	}
+	// Remove any color formatting
+	name = clearColor(name, selectedItemColor)
+	name = clearColor(name, highlightColor)
+	return name
+}
+
 // Reacting to the user selection
 func (i *index) selectedFunc(name string) {
-	name = clearColor(name, highlightColor)
+	// Clean the name from any existing formatting and prefixes
+	name = i.cleanItemName(name)
+
+	// Store the current index and get the next item's name before toggling selection
+	currentIndex := i.currentMenu.GetCurrentItem()
+	var nextItemName string
+	if currentIndex+1 < i.currentMenu.GetItemCount() {
+		nextName, _ := i.currentMenu.GetItemText(currentIndex + 1)
+		nextItemName = i.cleanItemName(nextName)
+	}
+
 	i.toggleSelected(name)
 
 	_, _, width, height := i.mainContent.GetInnerRect()
@@ -229,6 +341,26 @@ func (i *index) selectedFunc(name string) {
 	i.mainContent.SetText(replaceColors(res))
 	i.setRightPane(summary)
 	i.hasError = false
+
+	// Regenerate the menu to reorder items
+	newMenu := i.generateMenu()
+	i.grid.RemoveItem(i.currentMenu)
+	i.grid.AddItem(newMenu, 1, 0, 1, 1, 0, 100, false)
+	i.currentMenu = newMenu
+
+	// Find and focus on the next item in the new menu
+	if nextItemName != "" {
+		for idx := 2; idx < newMenu.GetItemCount(); idx++ {
+			itemText, _ := newMenu.GetItemText(idx)
+			itemName := i.cleanItemName(itemText)
+			if itemName == nextItemName {
+				newMenu.SetCurrentItem(idx)
+				break
+			}
+		}
+	}
+
+	i.app.SetFocus(i.currentMenu)
 }
 
 // Inverting a menu item selection
@@ -248,7 +380,9 @@ func (i *index) toggleSelected(name string) {
 }
 
 func (i *index) setSelectedItemColor(name string) {
-	converter := func(main string) string { return addColor(main, highlightColor) }
+	converter := func(main string) string {
+		return addColor("(*) "+i.cleanItemName(main), selectedItemColor)
+	}
 	i.findAndUpdateItemText(i.currentMenu, name, converter)
 	if i.allItemsMenu != i.currentMenu {
 		i.findAndUpdateItemText(i.allItemsMenu, name, converter)
@@ -256,8 +390,10 @@ func (i *index) setSelectedItemColor(name string) {
 }
 
 func (i *index) removeSelectedItemColor(name string) {
-	converter := func(main string) string { return clearColor(main, highlightColor) }
-	modifiedName := addColor(clearColor(name, highlightColor), highlightColor)
+	converter := func(main string) string {
+		return i.cleanItemName(main)
+	}
+	modifiedName := i.cleanItemName(name)
 	i.findAndUpdateItemText(i.currentMenu, modifiedName, converter)
 	if i.allItemsMenu != i.currentMenu {
 		i.findAndUpdateItemText(i.allItemsMenu, modifiedName, converter)
@@ -279,7 +415,7 @@ func (i *index) findExactMatch(menu *tview.List, name string) []int {
 		main, _ := menu.GetItemText(item)
 
 		// Protecting vs prefix matching
-		if main == name {
+		if i.cleanItemName(main) == i.cleanItemName(name) {
 			items = append(items, item)
 		}
 	}
@@ -296,8 +432,9 @@ func clearColor(name string, color string) string {
 }
 
 func (i *index) findSelectedIndex(name string) int {
+	cleanedName := i.cleanItemName(name)
 	for selectedIndex, candidate := range i.selected {
-		if name == candidate {
+		if cleanedName == candidate {
 			return selectedIndex
 		}
 	}
@@ -373,28 +510,16 @@ func findCurrentMetricValue(metrics []models.Metric) float64 {
 	return metrics[len(metrics)-1].Value
 }
 
-func (i *index) addFilterMenuItem(menu *tview.List) {
-	menu.AddItem(addColor("Filter: "+cursorChar, filterColor), "", 0, nil)
-}
-
-func (i *index) addQuitMenuItem(menu *tview.List) {
-	menu.AddItem("Quit", "Choose to exit", 0, func() {
-		if closer, ok := i.provider.(io.Closer); ok {
-			_ = closer.Close()
-		}
-		i.app.Stop()
-	})
-}
-
 func (i *index) addItemToMenu(m models.Metrics) {
-	i.allItemsMenu.AddItem(m.Name, "", 0, nil)
-	if i.currentMenu != i.allItemsMenu {
-		filterText, _ := i.allItemsMenu.GetItemText(filterItemIndex)
-		clearedText := clearColor(filterText, filterColor)
-		if textContains(m.Name, clearedText) || textContains(m.Description, clearedText) {
-			i.currentMenu.AddItem(m.Name, "", 0, nil)
-		}
-	}
+	// Store the metric in items map
+	i.items[m.Name] = m
+
+	// Regenerate the menu to show the new item
+	newMenu := i.generateMenu()
+	i.grid.RemoveItem(i.currentMenu)
+	i.grid.AddItem(newMenu, 1, 0, 1, 1, 0, 100, false)
+	i.currentMenu = newMenu
+	i.app.SetFocus(i.currentMenu)
 }
 
 func textContains(text string, filterText string) bool {
@@ -440,11 +565,10 @@ func (i *index) searchbarDelete() {
 }
 
 func (i *index) searchbarClear() {
-	i.allItemsMenu.SetItemText(filterItemIndex, addColor("Filter: "+cursorChar, filterColor), "")
-	if i.allItemsMenu != i.currentMenu {
-		i.currentMenu.SetItemText(filterItemIndex, addColor("Filter: "+cursorChar, filterColor), "")
-	}
+	i.currentMenu.SetItemText(filterItemIndex, addColor("Filter: "+cursorChar, filterColor), "")
 	i.refreshMenuAccordingToFilterInput("")
+	i.currentMenu.SetCurrentItem(filterItemIndex)
+	i.app.SetFocus(i.currentMenu)
 }
 
 func (i *index) setFilterText(newFilterText string) {
@@ -454,10 +578,7 @@ func (i *index) setFilterText(newFilterText string) {
 	} else {
 		newFilterColored = addColor("Filter: "+cursorChar, filterColor)
 	}
-	i.allItemsMenu.SetItemText(filterItemIndex, newFilterColored, "")
-	if i.allItemsMenu != i.currentMenu {
-		i.currentMenu.SetItemText(filterItemIndex, newFilterColored, "")
-	}
+	i.currentMenu.SetItemText(filterItemIndex, newFilterColored, "")
 	i.refreshMenuAccordingToFilterInput(newFilterText)
 }
 
@@ -465,26 +586,33 @@ func (i *index) setFilterText(newFilterText string) {
 func (i *index) refreshMenuAccordingToFilterInput(input string) {
 	i.userInteractionMutex.Lock()
 	defer i.userInteractionMutex.Unlock()
-	newMenu := i.allItemsMenu
-	alreadySetCurrentItem := false
+	newMenu := i.generateMenu()
+
+	// First add selected items at the top
+	for _, selectedName := range i.selected {
+		if input == "" || textContains(selectedName, input) {
+			newMenu.AddItem(addColor("(*) "+selectedName, selectedItemColor), "", 0, nil)
+		}
+	}
+
+	// Then add non-selected items
 	if input != "" {
 		itemsIndexes := i.allItemsMenu.FindItems(input, input, false, true)
-		newMenu = i.generateMenu()
-		selectedMainText, _ := i.currentMenu.GetItemText(filterItemIndex)
-		clearedFilterText := clearColor(selectedMainText, filterColor)
 		for _, itemIndex := range itemsIndexes {
-			if itemIndex == quitItemIndex {
+			if itemIndex <= filterSeparatorIndex {
 				continue
 			}
 			text, secondary := i.allItemsMenu.GetItemText(itemIndex)
-			if itemIndex == filterItemIndex {
-				newMenu.SetItemText(filterItemIndex, text, secondary)
-				continue
+			// Skip if this item is already added as selected
+			isSelected := false
+			for _, selectedName := range i.selected {
+				if i.cleanItemName(text) == i.cleanItemName(selectedName) {
+					isSelected = true
+					break
+				}
 			}
-			newMenu.AddItem(text, secondary, 0, nil)
-			if !alreadySetCurrentItem && textContains(text, clearedFilterText) {
-				alreadySetCurrentItem = true
-				newMenu.SetCurrentItem(newMenu.GetItemCount() - 1)
+			if !isSelected {
+				newMenu.AddItem(text, secondary, 0, nil)
 			}
 		}
 	}
@@ -492,6 +620,7 @@ func (i *index) refreshMenuAccordingToFilterInput(input string) {
 	i.grid.RemoveItem(i.currentMenu)
 	i.grid.AddItem(newMenu, 1, 0, 1, 1, 0, 100, false)
 	i.currentMenu = newMenu
+	newMenu.SetCurrentItem(filterItemIndex)
 	i.app.SetFocus(i.currentMenu)
 }
 
