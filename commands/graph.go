@@ -3,13 +3,14 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/eldada/metrics-viewer/models"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/eldada/metrics-viewer/visualization"
 	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
-	"strconv"
-	"time"
 )
 
 func GetGraphCommand() components.Command {
@@ -28,8 +29,7 @@ func getGraphFlags() []components.Flag {
 	return append(
 		getCommonFlags(),
 		components.StringFlag{
-			Name:         "time",
-			Description:  "Time window to show in seconds",
+			BaseFlag:     components.NewFlag("time", "Time window to show in seconds"),
 			DefaultValue: "300",
 		},
 	)

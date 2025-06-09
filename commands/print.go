@@ -1,15 +1,19 @@
 package commands
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+
 	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/printer"
 	"github.com/eldada/metrics-viewer/provider"
 	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"github.com/jfrog/jfrog-client-go/utils/log"
-	"io"
-	"os"
-	"strings"
 )
 
 func GetPrintCommand() components.Command {
@@ -28,18 +32,11 @@ func getPrintFlags() []components.Flag {
 	return append(
 		getCommonFlags(),
 		components.StringFlag{
-			Name:         "format",
-			Description:  "Format in which to print the metrics (available: open-metrics, csv)",
+			BaseFlag:     components.NewFlag("format", "Format in which to print the metrics (available: open-metrics, csv)"),
 			DefaultValue: "open-metrics",
 		},
-		components.StringFlag{
-			Name:        "metrics",
-			Description: "Comma separated list of metrics to collect. This is required when the output format is csv",
-		},
-		components.BoolFlag{
-			Name:        "no-header",
-			Description: "Indicate whether to print the header line when the output format is csv",
-		},
+		components.NewStringFlag("metrics", "Comma separated list of metrics to collect. This is required when the output format is csv"),
+		components.NewBoolFlag("no-header", "Indicate whether to print the header line when the output format is csv"),
 	)
 }
 
@@ -77,7 +74,18 @@ func printCmd(c *components.Context) error {
 	}
 	log.Debug("command config:", conf)
 
-	fetcher, err := printer.NewFetcher(conf)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signalChan
+		cancel()
+	}()
+
+	fetcher, err := printer.NewFetcherWithContext(ctx, conf)
 	if err != nil {
 		return err
 	}
@@ -88,13 +96,16 @@ func printCmd(c *components.Context) error {
 	}
 	shouldPrintEntry := getFilterFunc(conf)
 
-	for entry := range fetcher.Entries() {
-		if shouldPrintEntry(entry) {
-			_ = p.Print(entry)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case entry := <-fetcher.Entries():
+			if shouldPrintEntry(entry) {
+				_ = p.Print(entry)
+			}
 		}
 	}
-
-	return nil
 }
 
 func parsePrintCmdConfig(c cliContext) (*printConfiguration, error) {

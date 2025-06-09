@@ -34,10 +34,10 @@ mkdir -p out && go test -coverprofile=out/coverage.out ./... && go tool cover -h
 To build the **metrics-viewer** into a Docker image and use it
 ```shell
 # Build the Docker image
-docker build -t metrics-viewer:0.2.1 .
+docker build -t metrics-viewer:0.3.0 .
 
 # Test the Docker image
-docker run --rm metrics-viewer:0.2.1 --version
+docker run --rm metrics-viewer:0.3.0 --version
 ```
 
 ## Installation of local binary with JFrog CLI
@@ -68,20 +68,15 @@ jf plugin uninstall metrics-viewer
 ```
 
 ## Artifactory Metrics
-You can view [Artifactory Metrics](https://www.jfrog.com/confluence/display/JFROG/Open+Metrics) in various ways.
+You can view [Artifactory Metrics](https://jfrog.com/help/r/jfrog-platform-administration-documentation/open-metrics) in various ways.
+
 To try it out, you can run Artifactory as Docker container.
 
-* Start Artifactory as Docker container and enable its metrics
-```shell
-docker run --rm -d --name artifactory \
-    -p 8082:8082 \
-    -e JF_SHARED_METRICS_ENABLED=true \
-    -v $(pwd)/artifactory:/var/opt/jfrog/artifactory/ docker.bintray.io/jfrog/artifactory-oss
-```
+* [Start Artifactory as a Docker](https://jfrog.com/help/r/jfrog-installation-setup-documentation/install-artifactory-single-node-with-docker) container and [enable its metrics](https://jfrog.com/help/r/jfrog-platform-administration-documentation/open-metrics)
 
-* Once Artifactory is up, you can see the metrics log file or [REST API endpoint](https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API#ArtifactoryRESTAPI-GettheOpenMetricsforArtifactory)
+* Once Artifactory is up, you can see the metrics log file or [REST API endpoint](https://jfrog.com/help/r/jfrog-rest-apis/get-the-open-metrics-for-artifactory)
 ```shell
-# See the metrics log files
+# See the metrics log files. For example, Artifactory and Metadata logs
 cat artifactory/log/artifactory-metrics.log
 cat artifactory/log/metadata-metrics.log
 
@@ -177,27 +172,29 @@ jf metrics-viewer print --url http://localhost:8082/artifactory/api/v1/metrics -
 ```shell
 # Use with direct Artifactory metrics API URL
 # NOTE: The server URL has to be accessible from within the Docker container
-docker run --rm --name metrics-viewer metrics-viewer:0.1 \
+docker run --rm --name metrics-viewer metrics-viewer:0.3.0 \
     graph --url http://artifactory-server/artifactory/api/v1/metrics --user admin --password password
 
 # Print specific metrics as CSV
 # NOTE: The Docker container needs to access the file system for the logs, so need to mount it into the container 
-docker run --rm --name metrics-viewer -v $(pwd)/artifactory:/artifactory metrics-viewer:0.1 \
+docker run --rm --name metrics-viewer -v $(pwd)/artifactory:/artifactory metrics-viewer:0.3.0 \
     print --file /artifactory/log/artifactory-metrics.log \
     --format csv --metrics jfrt_runtime_heap_freememory_bytes,jfrt_runtime_heap_totalmemory_bytes
 ```
 
 ### The Viewer
 Once running, the viewer will show 3 main sections
-- Left pane: List of available metrics
+- Left pane: Box with selected metrics and another box with list of available metrics (matching search pattern if set)
 - Center pane: Graph of selected metrics
-- Right pane: Selected metrics **Max**, **Min** and **Current** values
+- Right pane: Selected metrics metadata and **Max**, **Min** and **Current** values
 
 #### Keys
 - Up/Down arrow keys: Move between available metrics
 - Space/Enter: Select/Deselect metric to view
-- Free text: Apply text filter on available metrics
-- Ctrl+C: Close **metrics-viewer**
+- "/": Search pattern in available metrics (supprts regex)
+  - Enter to apply pattern and jump back to metrics list
+  - ESC to clear search text
+- Ctrl+C: Exit **metrics-viewer**
 
 ## Release Notes
 The release notes are available [here](RELEASE.md).

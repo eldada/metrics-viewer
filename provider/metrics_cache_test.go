@@ -2,15 +2,15 @@ package provider
 
 import (
 	"fmt"
-	"github.com/eldada/metrics-viewer/models"
-	"github.com/eldada/metrics-viewer/parser"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/eldada/metrics-viewer/models"
+	"github.com/eldada/metrics-viewer/parser"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_filterByTimeWindow(t *testing.T) {
@@ -48,7 +48,7 @@ func Test_filterByTimeWindow(t *testing.T) {
 			metricsFile, err := os.Open(tc.inputFile)
 			require.NoError(t, err, "could not open input file")
 			defer metricsFile.Close()
-			expected, err := ioutil.ReadFile(tc.expectedFile)
+			expected, err := os.ReadFile(tc.expectedFile)
 			require.NoError(t, err, "could not read expected results file")
 			metrics, err := parser.ParseMetrics(metricsFile)
 			require.NoError(t, err, "unexpected error while parsing metrics")

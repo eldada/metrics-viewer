@@ -12,7 +12,7 @@ rm -rf bin
 mkdir -p bin
 
 echo "Building $BIN"
-platforms=("darwin/amd64" "linux/arm64" "linux/amd64" "windows/amd64" "windows/386")
+platforms=("darwin/amd64" "darwin/arm64" "linux/arm64" "linux/amd64" "windows/amd64" "windows/386")
 
 for p in "${platforms[@]}"; do
     platform_array=(${p//\// })

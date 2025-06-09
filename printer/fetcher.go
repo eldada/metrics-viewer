@@ -1,9 +1,11 @@
 package printer
 
 import (
+	"context"
 	"fmt"
-	"github.com/eldada/metrics-viewer/provider"
 	"time"
+
+	"github.com/eldada/metrics-viewer/provider"
 )
 
 type FetcherConfig interface {
@@ -18,6 +20,16 @@ func NewFetcher(conf FetcherConfig) (MetricEntryFetcher, error) {
 	}
 	if conf.UrlMetricsFetcher() != nil {
 		return newUrlOpenMetricsEntryFetcher(conf.UrlMetricsFetcher(), conf.Interval())
+	}
+	return nil, fmt.Errorf("illegal state, could not create fetcher - file or url are mandatory")
+}
+
+func NewFetcherWithContext(ctx context.Context, conf FetcherConfig) (MetricEntryFetcher, error) {
+	if conf.File() != "" {
+		return newFileOpenMetricEntryFetcherWithContext(ctx, conf.File())
+	}
+	if conf.UrlMetricsFetcher() != nil {
+		return newUrlOpenMetricsEntryFetcherWithContext(ctx, conf.UrlMetricsFetcher(), conf.Interval())
 	}
 	return nil, fmt.Errorf("illegal state, could not create fetcher - file or url are mandatory")
 }

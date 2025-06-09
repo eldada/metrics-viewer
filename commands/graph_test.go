@@ -1,12 +1,13 @@
 package commands
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_parseGraphCmdConfig(t *testing.T) {
@@ -19,7 +20,7 @@ func Test_parseGraphCmdConfig(t *testing.T) {
 		return parseGraphCmdConfig(ctx)
 	})
 	testFilepath := path.Join(t.TempDir(), "foo")
-	require.NoError(t, ioutil.WriteFile(testFilepath, []byte("hello"), 0777))
+	require.NoError(t, os.WriteFile(testFilepath, []byte("hello"), 0777))
 	defaultCliCtx.stringFlags["file"] = testFilepath
 	tests := []struct {
 		name    string

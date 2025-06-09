@@ -2,60 +2,38 @@ package commands
 
 import (
 	"fmt"
-	"github.com/eldada/metrics-viewer/provider"
-	"github.com/jfrog/jfrog-cli-core/v2/common/commands"
-	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/eldada/metrics-viewer/provider"
+	"github.com/jfrog/jfrog-cli-core/v2/common/commands"
+	"github.com/jfrog/jfrog-cli-core/v2/plugins/components"
 )
 
-var FileFlag = components.StringFlag{
-	Name:        "file",
-	Description: "Log file with the open metrics format",
-}
+var FileFlag = components.NewStringFlag("file", "Log file with the open metrics format")
 
-var UrlFlag = components.StringFlag{
-	Name:        "url",
-	Description: "Url endpoint to use to get metrics",
-}
+var UrlFlag = components.NewStringFlag("url", "Url endpoint to use to get metrics")
 
-var UserFlag = components.StringFlag{
-	Name:        "user",
-	Description: "Username for url requiring authentication (see --password)",
-}
+var UserFlag = components.NewStringFlag("user", "Username for url requiring authentication (see --password)")
 
-var PasswordFlag = components.StringFlag{
-	Name:        "password",
-	Description: "Password for url requiring authentication (see --user)",
-}
+var PasswordFlag = components.NewStringFlag("password", "Password for url requiring authentication (see --user)")
 
-var TokenFlag = components.StringFlag{
-	Name:        "token",
-	Description: "Access token for url requiring authentication",
-}
+var TokenFlag = components.NewStringFlag("token", "Access token for url requiring authentication")
 
-var ServerFlag = components.StringFlag{
-	Name:        "server-id",
-	Description: "Artifactory server ID to use from JFrog CLI configuration (use default if not set)",
-}
+var ServerFlag = components.NewStringFlag("server-id", "Artifactory server ID to use from JFrog CLI configuration (use default if not set)")
 
 var IntervalFlag = components.StringFlag{
-	Name:         "interval",
-	Description:  "Scraping interval in seconds",
+	BaseFlag:     components.NewFlag("interval", "Scraping interval in seconds"),
 	DefaultValue: "5",
 }
 
-var FilterFlag = components.StringFlag{
-	Name:        "filter",
-	Description: "Regular expression to use for filtering the metrics",
-}
+var FilterFlag = components.NewStringFlag("filter", "Regular expression to use for filtering the metrics")
 
 var AggregateIgnoreLabelsFlag = components.StringFlag{
-	Name:         "aggregate-ignore-labels",
-	Description:  "Comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels.",
+	BaseFlag:     components.NewFlag("aggregate-ignore-labels", "Comma delimited list of labels to ignore when aggregating metrics. Use 'ALL' or 'NONE' to ignore all or none of the labels."),
 	DefaultValue: "start,end,status",
 }
 

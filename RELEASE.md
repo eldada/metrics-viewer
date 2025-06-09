@@ -1,3 +1,7 @@
+## 0.3.0 (June 2025)
+- Update dependencies
+- New look and feel
+
 ## 0.2.1 (Sep 29, 2021)
 - Fix build for Windows
 

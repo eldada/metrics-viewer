@@ -2,14 +2,15 @@ package commands
 
 import (
 	"fmt"
-	"github.com/eldada/metrics-viewer/provider"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"path"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/eldada/metrics-viewer/provider"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_parseCommonConfig(t *testing.T) {
@@ -24,7 +25,7 @@ func testParseCommonConfig(t *testing.T, defaultCliCtx cliContextMock, parse fun
 	}
 	defaultCliCtx.stringFlags["interval"] = "5"
 	testFilepath := path.Join(t.TempDir(), "foo")
-	require.NoError(t, ioutil.WriteFile(testFilepath, []byte("hello"), 0777))
+	require.NoError(t, os.WriteFile(testFilepath, []byte("hello"), 0777))
 	tests := []struct {
 		name    string
 		cliCtx  cliContextMock
