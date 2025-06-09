@@ -4,7 +4,7 @@ A JFrog CLI plugin or standalone binary to show [open-metrics](https://openmetri
 - JFrog Artifactory
 ![The Metrics Viewer Graph - single metric](images/metrics-viewer-graph.png)
 
-- JFrog Metadata (multiple metrics)
+- JFrog Artifactory (multiple metrics)
 ![The Metrics Viewer Graph - multiple metrics](images/metrics-viewer-graph-multiple.png)
 
 ## About this plugin
