@@ -1,11 +1,17 @@
 package printer
 
 import (
-	"github.com/hpcloud/tail"
+	"context"
 	"strings"
+
+	"github.com/hpcloud/tail"
 )
 
 func newFileOpenMetricEntryFetcher(filename string) (*fileOpenMetricEntryFetcher, error) {
+	return newFileOpenMetricEntryFetcherWithContext(context.Background(), filename)
+}
+
+func newFileOpenMetricEntryFetcherWithContext(ctx context.Context, filename string) (*fileOpenMetricEntryFetcher, error) {
 	t, err := tail.TailFile(filename, tail.Config{
 		Follow: true,
 		ReOpen: true,
@@ -16,6 +22,7 @@ func newFileOpenMetricEntryFetcher(filename string) (*fileOpenMetricEntryFetcher
 	fetcher := fileOpenMetricEntryFetcher{
 		tail:    t,
 		entries: make(chan string),
+		ctx:     ctx,
 	}
 	go fetcher.fetch()
 	return &fetcher, nil
@@ -25,11 +32,18 @@ type fileOpenMetricEntryFetcher struct {
 	tail    *tail.Tail
 	entries chan string
 	closed  bool
+	ctx     context.Context
 }
 
 func (f *fileOpenMetricEntryFetcher) fetch() {
+	defer close(f.entries)
 	entry := strings.Builder{}
 	for line := range f.tail.Lines {
+		select {
+		case <-f.ctx.Done():
+			return
+		default:
+		}
 		if f.closed {
 			break
 		}
@@ -41,14 +55,17 @@ func (f *fileOpenMetricEntryFetcher) fetch() {
 		if line.Text == "" || strings.HasPrefix(line.Text, "#") {
 			continue
 		}
-		f.entries <- entry.String()
-		entry.Reset()
+		select {
+		case <-f.ctx.Done():
+			return
+		case f.entries <- entry.String():
+			entry.Reset()
+		}
 	}
 }
 
 func (f *fileOpenMetricEntryFetcher) Close() error {
 	f.closed = true
-	close(f.entries)
 	return f.tail.Stop()
 }
 

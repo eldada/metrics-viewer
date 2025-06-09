@@ -1,10 +1,13 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/eldada/metrics-viewer/parser"
 	"github.com/eldada/metrics-viewer/printer"
@@ -71,7 +74,18 @@ func printCmd(c *components.Context) error {
 	}
 	log.Debug("command config:", conf)
 
-	fetcher, err := printer.NewFetcher(conf)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signalChan
+		cancel()
+	}()
+
+	fetcher, err := printer.NewFetcherWithContext(ctx, conf)
 	if err != nil {
 		return err
 	}
@@ -82,13 +96,16 @@ func printCmd(c *components.Context) error {
 	}
 	shouldPrintEntry := getFilterFunc(conf)
 
-	for entry := range fetcher.Entries() {
-		if shouldPrintEntry(entry) {
-			_ = p.Print(entry)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case entry := <-fetcher.Entries():
+			if shouldPrintEntry(entry) {
+				_ = p.Print(entry)
+			}
 		}
 	}
-
-	return nil
 }
 
 func parsePrintCmdConfig(c cliContext) (*printConfiguration, error) {
